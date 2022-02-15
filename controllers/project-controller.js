@@ -1,5 +1,8 @@
+const { v4: uuidv4 } = require("uuid");
 const type = require("../shared/type");
 const genre = require("../shared/genre");
+const HttpError = require("../models/http-error");
+const { validationResult } = require("express-validator");
 
 ////resources
 const ico1 =
@@ -40,7 +43,8 @@ const panoramaFull =
 const panoramaFullThumb =
   "https://github.com/piotr-kozlowski-reps/ante_app__react/blob/master/src/images/2013_08_osiedle_mieszkaniowe_dusseldorf_niemcy_pano02big__thumb.jpg?raw=true";
 
-const DUMMY_PROJECTS = [
+//DUMMIES
+let DUMMY_PROJECTS = [
   {
     id: "1",
     genre: genre.PANORAMA,
@@ -734,4 +738,186 @@ const DUMMY_PROJECTS = [
   },
 ];
 
-exports.DUMMY_PROJECTS = DUMMY_PROJECTS;
+////logic
+const getProjects = (req, res, next) => {
+  const projectsListMapped = DUMMY_PROJECTS.map((project) => {
+    return {
+      id: project.id,
+      genre: project.genre,
+      projNamePl: project.projNamePl,
+      projNameEn: project.projNameEn,
+      completionDate: project.completionDate,
+      cityPl: project.cityPl,
+      cityEn: project.cityEn,
+      countryPl: project.countryPl,
+      countryEn: project.countryEn,
+      icoImgFull: project.icoImgFull,
+      icoImgThumb: project.icoImgThumb,
+      type: project.type,
+    };
+  });
+
+  res.json({ projects: projectsListMapped });
+};
+
+const getProjectById = (req, res, next) => {
+  const projectId = req.params.projectId;
+  const project = DUMMY_PROJECTS.find((project) => project.id === projectId);
+
+  if (!project) {
+    return next(
+      new HttpError("Could not find the project for the provided id.", 404)
+    );
+  }
+  res.json({ project });
+};
+
+const createProject = (req, res, next) => {
+  //validating errors
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    const errrorsMessages = errors.errors.map((error) => {
+      return {
+        errorField: error.param,
+        errorMessage: error.msg,
+      };
+    });
+
+    return res.status(422).json(errrorsMessages);
+  }
+
+  //creating logic
+  const projectGenre = req.body.genre;
+
+  const newProject = createNewProjectFromBodyData(req, projectGenre, false);
+
+  if (!newProject) {
+    return next(
+      new HttpError("Could not create project with provided genre", 400)
+    );
+  }
+
+  DUMMY_PROJECTS.push(newProject);
+
+  res.status(201).json({ project: newProject });
+};
+
+const updateProjectById = (req, res, next) => {
+  const projectGenre = req.body.genre;
+  const projectId = req.params.projectId;
+
+  let existingProject = {
+    ...DUMMY_PROJECTS.find((project) => project.id === projectId),
+  };
+  const projectIndex = DUMMY_PROJECTS.findIndex(
+    (project) => project.id === projectId
+  );
+
+  if (!existingProject || Object.keys(existingProject).length === 0) {
+    return next(new HttpError("Could not find project with provided id.", 400));
+  }
+
+  const newProject = createNewProjectFromBodyData(req, projectGenre, true);
+
+  if (!newProject) {
+    return next(
+      new HttpError("Could not update project with provided genre.", 400)
+    );
+  }
+
+  if (existingProject.genre !== newProject.genre) {
+    return next(
+      new HttpError(
+        "Could not update project, provided project's genre is different than existing one.",
+        400
+      )
+    );
+  }
+
+  newProject.id = projectId;
+  DUMMY_PROJECTS[projectIndex] = newProject;
+
+  // console.log(DUMMY_PROJECTS);
+  res.status(201).json({ project: newProject });
+};
+
+const deleteProjectById = (req, res, next) => {
+  const projectId = req.params.projectId;
+
+  const existingProject = {
+    ...DUMMY_PROJECTS.find((project) => project.id === projectId),
+  };
+  if (!existingProject || Object.keys(existingProject).length === 0) {
+    return next(new HttpError("Could not find project with provided id.", 400));
+  }
+
+  DUMMY_PROJECTS = DUMMY_PROJECTS.filter((project) => project.id !== projectId);
+
+  res.status(200).json({ message: "Project deleted." });
+};
+
+//utils
+function createNewProjectFromBodyData(req, projectGenre, isUpdate) {
+  const {
+    genre,
+    projNamePl,
+    projNameEn,
+    completionDate,
+    cityPl,
+    cityEn,
+    countryPl,
+    countryEn,
+    icoImgFull,
+    icoImgThumb,
+    type,
+  } = req.body;
+
+  const newProject = {
+    id: isUpdate ? req.body.id : uuidv4(),
+    genre,
+    projNamePl,
+    projNameEn,
+    completionDate,
+    cityPl,
+    cityEn,
+    countryPl,
+    countryEn,
+    icoImgFull,
+    icoImgThumb,
+    type,
+  };
+
+  switch (projectGenre) {
+    case "GRAPHIC":
+      const { images } = req.body;
+      newProject.images = images;
+      break;
+
+    case "ANIMATION":
+      const { videoSource, videoSourceThumb } = req.body;
+      newProject.videoSource = videoSource;
+      newProject.videoSourceThumb = videoSourceThumb;
+      break;
+
+    case "APP":
+      const { appInfo } = req.body;
+      newProject.appInfo = appInfo;
+      break;
+
+    case "PANORAMA":
+      const { panoramas } = req.body;
+      newProject.panoramas = panoramas;
+      break;
+
+    default:
+      return null;
+  }
+
+  return newProject;
+}
+
+exports.getProjects = getProjects;
+exports.getProjectById = getProjectById;
+exports.createProject = createProject;
+exports.updateProjectById = updateProjectById;
+exports.deleteProjectById = deleteProjectById;
