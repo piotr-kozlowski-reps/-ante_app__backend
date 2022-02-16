@@ -4,7 +4,7 @@ const genre = require("../shared/genre");
 const HttpError = require("../models/http-error");
 const { validationResult } = require("express-validator");
 
-////resources
+//DUMMIES
 const ico1 =
   "https://github.com/piotr-kozlowski-reps/ante_app__react/blob/master/src/images/2019_07_wnetrze_mieszkalne_essen_niemcy_ico.jpg?raw=true";
 const ico1Thumb =
@@ -43,7 +43,6 @@ const panoramaFull =
 const panoramaFullThumb =
   "https://github.com/piotr-kozlowski-reps/ante_app__react/blob/master/src/images/2013_08_osiedle_mieszkaniowe_dusseldorf_niemcy_pano02big__thumb.jpg?raw=true";
 
-//DUMMIES
 let DUMMY_PROJECTS = [
   {
     id: "1",
@@ -803,6 +802,20 @@ const createProject = (req, res, next) => {
 };
 
 const updateProjectById = (req, res, next) => {
+  //validating errors
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    const errrorsMessages = errors.errors.map((error) => {
+      return {
+        errorField: error.param,
+        errorMessage: error.msg,
+      };
+    });
+
+    return res.status(422).json(errrorsMessages);
+  }
+
+  //updating logic
   const projectGenre = req.body.genre;
   const projectId = req.params.projectId;
 
@@ -837,7 +850,6 @@ const updateProjectById = (req, res, next) => {
   newProject.id = projectId;
   DUMMY_PROJECTS[projectIndex] = newProject;
 
-  // console.log(DUMMY_PROJECTS);
   res.status(201).json({ project: newProject });
 };
 
