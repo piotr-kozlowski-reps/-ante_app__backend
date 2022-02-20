@@ -28,7 +28,7 @@ const commonDataValidator = [
     .not()
     .isEmpty()
     .withMessage("icoImgThumb cannot be empty."),
-  check("type")
+  check("projectType")
     .isIn([
       "COMPETITION",
       "INTERIOR",

@@ -2,6 +2,7 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const HttpError = require("./models/http-error");
 const mongoose = require("mongoose");
+const { getSecret } = require("./secrets");
 //
 const projectRoutes = require("./routes/projects-routes");
 const loginRoutes = require("./routes/login-routes");
@@ -10,6 +11,16 @@ const loginRoutes = require("./routes/login-routes");
 const app = express();
 
 app.use(bodyParser.json());
+
+app.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept, Authorization"
+  );
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE");
+  next();
+});
 
 //routes
 app.use("/api/projects", projectRoutes);
@@ -28,11 +39,9 @@ app.use((error, req, res, next) => {
     .json({ message: error.message || "An unknown error occured." });
 });
 
-//listener
+//db & listener
 mongoose
-  .connect(
-    "mongodb+srv://<username>:<password>@cluster0.c9ept.mongodb.net/ante-projects?retryWrites=true&w=majority"
-  )
+  .connect(getSecret("url"))
   .then(() => {
     app.listen(5000);
   })

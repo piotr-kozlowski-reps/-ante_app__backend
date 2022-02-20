@@ -1,31 +1,28 @@
 const HttpError = require("../models/http-error");
+const User = require("../models/user");
 
-//dummies
-const DUMMY_USERS = [
-  {
-    id: "u1",
-    login: "login",
-    password: "password",
-  },
-  {
-    id: "u2",
-    login: "login2",
-    password: "password2",
-  },
-];
-
-////logic
-const login = (req, res, next) => {
+const login = async (req, res, next) => {
   const { login, password } = req.body;
 
-  const userFound = DUMMY_USERS.find((user) => user.login === login);
-  if (!userFound) {
+  let existingUser;
+  try {
+    existingUser = await User.findOne({ login: login });
+  } catch (err) {
+    return next(
+      new HttpError(
+        `Logging in failed, please try again. Details: (${err.message})`,
+        500
+      )
+    );
+  }
+
+  if (!existingUser) {
     return next(
       new HttpError("Wrong login, there's no user with login provided.", 401)
     );
   }
 
-  if (userFound.password !== password) {
+  if (existingUser.password !== password) {
     return next(new HttpError("Wrong password.", 401));
   }
 

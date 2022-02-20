@@ -1,7 +1,4 @@
-const type = require("../shared/type");
-const genre = require("../shared/genre");
-
-////resources
+//DUMMIES
 const ico1 =
   "https://github.com/piotr-kozlowski-reps/ante_app__react/blob/master/src/images/2019_07_wnetrze_mieszkalne_essen_niemcy_ico.jpg?raw=true";
 const ico1Thumb =
@@ -40,7 +37,7 @@ const panoramaFull =
 const panoramaFullThumb =
   "https://github.com/piotr-kozlowski-reps/ante_app__react/blob/master/src/images/2013_08_osiedle_mieszkaniowe_dusseldorf_niemcy_pano02big__thumb.jpg?raw=true";
 
-const DUMMY_PROJECTS = [
+let DUMMY_PROJECTS = [
   {
     id: "1",
     genre: genre.PANORAMA,
@@ -733,5 +730,3 @@ const DUMMY_PROJECTS = [
     ],
   },
 ];
-
-exports.DUMMY_PROJECTS = DUMMY_PROJECTS;
