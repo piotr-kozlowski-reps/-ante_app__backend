@@ -2,7 +2,9 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const HttpError = require("./models/http-error");
 const mongoose = require("mongoose");
-const { getSecret } = require("./secrets");
+//env
+const env = "development";
+const config = require("./config")[env];
 //
 const projectRoutes = require("./routes/projects-routes");
 const loginRoutes = require("./routes/login-routes");
@@ -41,10 +43,10 @@ app.use((error, req, res, next) => {
 
 //db & listener
 mongoose
-  .connect(getSecret("url"))
+  .connect(config.database.url)
   .then(() => {
     app.listen(5000);
   })
   .catch((err) => {
-    console.log(error);
+    console.log(err);
   });
