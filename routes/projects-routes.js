@@ -23,6 +23,8 @@ const checks = [
     .withMessage("completionDate must be valid"), //TODO: completion date validation!
   check("cityPl").not().isEmpty().withMessage("cityPl cannot be empty."),
   check("cityEn").not().isEmpty().withMessage("cityEn cannot be empty."),
+  check("clientPl").not().isEmpty().withMessage("clientPl cannot be empty."),
+  check("clientEn").not().isEmpty().withMessage("clientEn cannot be empty."),
   check("countryPl").not().isEmpty().withMessage("countryPl cannot be empty."),
   check("countryEn").not().isEmpty().withMessage("countryEn cannot be empty."),
   check("icoImgFull")
