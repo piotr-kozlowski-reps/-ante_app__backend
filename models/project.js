@@ -22,7 +22,7 @@ const Project = mongoose.model(
       cityPl: { type: String, required: true },
       cityEn: { type: String, required: true },
       clientPl: { type: String, required: true },
-      clientEl: { type: String, required: true },
+      clientEn: { type: String, required: true },
       countryPl: { type: String, required: true },
       countryEn: { type: String, required: true },
       icoImgFull: { type: String, required: true },

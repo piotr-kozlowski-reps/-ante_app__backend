@@ -92,6 +92,7 @@ const createProject = async (req, res, next) => {
   // creating logic
   const projectGenre = req.body.genre;
   const newProject = createNewProjectFactory(req, projectGenre);
+  console.log(newProject);
 
   if (!newProject) {
     return next(
@@ -160,7 +161,7 @@ const updateProjectById = async (req, res, next) => {
 
   try {
     await existingProject.save();
-  } catch (error) {
+  } catch (err) {
     return next(
       new HttpError(
         `Something went wrong, could not update a project. (${err.message})`,
@@ -249,6 +250,8 @@ function createNewProjectFactory(req, projectGenre) {
     completionDate,
     cityPl,
     cityEn,
+    clientPl,
+    clientEn,
     countryPl,
     countryEn,
     icoImgFull,
@@ -263,6 +266,8 @@ function createNewProjectFactory(req, projectGenre) {
     completionDate,
     cityPl,
     cityEn,
+    clientPl,
+    clientEn,
     countryPl,
     countryEn,
     icoImgFull,
