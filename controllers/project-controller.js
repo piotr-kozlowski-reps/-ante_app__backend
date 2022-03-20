@@ -9,6 +9,8 @@ const ProjectApp = require("../models/ProjectApp");
 const ProjectPanorama = require("../models/ProjectPanorama");
 const ProjectAnimation = require("../models/ProjectAnimation");
 
+const URL_BASE = "http://localhost:5000/";
+
 ////logic
 const getProjects = async (req, res, next) => {
   let projectsListMapped;
@@ -76,6 +78,8 @@ const getProjectById = async (req, res, next) => {
 };
 
 const createProject = async (req, res, next) => {
+  console.log(req.body);
+  console.log(req.files);
   //validating errors
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -85,8 +89,8 @@ const createProject = async (req, res, next) => {
         errorMessage: error.msg,
       };
     });
-
-    return res.status(422).json(errorsMessages);
+    return next(new HttpError(JSON.stringify(errorsMessages), 422));
+    // return res.status(422).json(errorsMessages);
   }
 
   // creating logic
@@ -270,7 +274,7 @@ function createNewProjectFactory(req, projectGenre) {
     clientEn,
     countryPl,
     countryEn,
-    icoImgFull,
+    icoImgFull: req.files.find((file) => file.fieldname === "icoImgFull").path,
     icoImgThumb,
     projectType,
   };

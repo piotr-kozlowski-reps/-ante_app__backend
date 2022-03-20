@@ -2,13 +2,14 @@ const express = require("express");
 const { check, body } = require("express-validator");
 
 const projectControllers = require("../controllers/project-controller");
+const fileUpload = require("../middleware/file-upload");
 
 ////utils
 //checks
 const checks = [
   check("genre")
     .isIn(["ANIMATION", "APP", "GRAPHIC", "PANORAMA"])
-    .withMessage("provided project's genre is false "),
+    .withMessage("provided project's genre is false."),
   check("projNamePl")
     .not()
     .isEmpty()
@@ -28,9 +29,23 @@ const checks = [
   check("countryPl").not().isEmpty().withMessage("countryPl cannot be empty."),
   check("countryEn").not().isEmpty().withMessage("countryEn cannot be empty."),
   check("icoImgFull")
-    .not()
-    .isEmpty()
-    .withMessage("icoImgFull cannot be empty."),
+    .custom((value, { req }) => {
+      if (
+        req.file.mimetype === "image/png" ||
+        req.file.mimetype === "image/jpeg" ||
+        req.file.mimetype === "image/jpg" ||
+        req.file.mimetype === "image/gif"
+      )
+        return true;
+      else return false;
+    })
+    .withMessage(
+      "Please submit only image file with format: .png | .jpg | .jpeg | .gif"
+    ),
+  // check("icoImgFull")
+  //   .not()
+  //   .isEmpty()
+  //   .withMessage("icoImgFull cannot be empty."),
   check("icoImgThumb")
     .not()
     .isEmpty()
@@ -172,7 +187,13 @@ function customTypeValidation(typesArray) {
 const router = express.Router();
 
 router.get("/", projectControllers.getProjects);
-router.post("/", checks, projectControllers.createProject);
+router.post(
+  "/",
+  // fileUpload.single("icoImgFull"),
+  fileUpload.any(),
+  checks,
+  projectControllers.createProject
+);
 
 router.get("/:projectId", projectControllers.getProjectById);
 router.patch("/:projectId", checks, projectControllers.updateProjectById);

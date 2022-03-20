@@ -2,6 +2,8 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const HttpError = require("./models/http-error");
 const mongoose = require("mongoose");
+const fs = require("fs");
+const path = require("path");
 //env
 const env = "development";
 const config = require("./config")[env];
@@ -13,6 +15,8 @@ const loginRoutes = require("./routes/login-routes");
 const app = express();
 
 app.use(bodyParser.json());
+
+app.use("/uploads/images", express.static(path.join("uploads", "images")));
 
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -33,6 +37,15 @@ app.use((req, res, next) => {
   return next(new HttpError("Could not find this route.", 404));
 });
 app.use((error, req, res, next) => {
+  //if request fails - delete image uploaded
+  console.log(req.file);
+  if (req.file) {
+    console.log("deleting file");
+    fs.unlink(req.file.path, (err) => {
+      console.log(err);
+    });
+  }
+
   if (res.headerSent) {
     return next(error);
   }
