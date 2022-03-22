@@ -2,6 +2,8 @@ const type = require("../shared/type");
 const genre = require("../shared/genre");
 const HttpError = require("../models/http-error");
 const { validationResult } = require("express-validator");
+const sharp = require("sharp");
+const Fs = require("fs");
 
 const Project = require("../models/project");
 const ProjectGraphic = require("../models/ProjectGraphic");
@@ -10,6 +12,7 @@ const ProjectPanorama = require("../models/ProjectPanorama");
 const ProjectAnimation = require("../models/ProjectAnimation");
 
 const URL_BASE = "http://localhost:5000/";
+const IMAGE_THUMB_ENUM = require("../shared/image-thumb-enum");
 
 ////logic
 const getProjects = async (req, res, next) => {
@@ -78,8 +81,6 @@ const getProjectById = async (req, res, next) => {
 };
 
 const createProject = async (req, res, next) => {
-  console.log(req.body);
-  console.log(req.files);
   //validating errors
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -90,33 +91,40 @@ const createProject = async (req, res, next) => {
       };
     });
     return next(new HttpError(JSON.stringify(errorsMessages), 422));
-    // return res.status(422).json(errorsMessages);
   }
 
-  // creating logic
-  const projectGenre = req.body.genre;
-  const newProject = createNewProjectFactory(req, projectGenre);
-  console.log(newProject);
+  createThumbnails(req.files, next)
+    .then(async () => {
+      checkIfEveryFileExistsIncludingThumbnails(req.files, next);
 
-  if (!newProject) {
-    return next(
-      new HttpError("Could not create project with provided genre", 400)
-    );
-  }
+      // creating logic
+      console.log("staring creating file");
+      const projectGenre = req.body.genre;
+      const newProject = createNewProjectFactory(req, projectGenre);
+      console.log(newProject);
 
-  try {
-    // console.log(newProject);
-    await newProject.save();
-  } catch (err) {
-    return next(
-      new HttpError(
-        `Creating project failed, please try again. (${err.message})`,
-        500
-      )
-    );
-  }
+      if (!newProject) {
+        return next(
+          new HttpError("Could not create project with provided genre", 400)
+        );
+      }
 
-  res.status(201).json({ project: newProject });
+      try {
+        await newProject.save();
+      } catch (err) {
+        return next(
+          new HttpError(
+            `Creating project failed, please try again. (${err.message})`,
+            500
+          )
+        );
+      }
+
+      res.status(201).json({ project: newProject });
+    })
+    .catch((errorMessage) => {
+      return next(new HttpError(errorMessage, 400));
+    });
 };
 
 const updateProjectById = async (req, res, next) => {
@@ -274,8 +282,16 @@ function createNewProjectFactory(req, projectGenre) {
     clientEn,
     countryPl,
     countryEn,
-    icoImgFull: req.files.find((file) => file.fieldname === "icoImgFull").path,
-    icoImgThumb,
+    icoImgFull: fillFieldWithPathOfUploadedFile(
+      req.files,
+      "icoImgFull",
+      IMAGE_THUMB_ENUM.IMAGE_FULL
+    ),
+    icoImgThumb: fillFieldWithPathOfUploadedFile(
+      req.files,
+      "icoImgFull",
+      IMAGE_THUMB_ENUM.IMAGE_THUMBNAIL
+    ),
     projectType,
   };
 
@@ -290,7 +306,11 @@ function createNewProjectFactory(req, projectGenre) {
       return new ProjectAnimation({
         ...newProjectCommons,
         videoSource: req.body.videoSource,
-        videoSourceThumb: req.body.videoSourceThumb,
+        videoSourceThumb: fillFieldWithPathOfUploadedFile(
+          req.files,
+          "videoSourceThumb",
+          IMAGE_THUMB_ENUM.IMAGE_FULL
+        ),
       });
 
     case "APP":
@@ -307,6 +327,86 @@ function createNewProjectFactory(req, projectGenre) {
 
     default:
       return null;
+  }
+}
+
+function fillFieldWithPathOfUploadedFile(filesArray, formFieldName, imageType) {
+  let pathResult = "";
+
+  const fileFound = filesArray.find((file) => file.fieldname === formFieldName);
+
+  if (fileFound) {
+    switch (imageType) {
+      case IMAGE_THUMB_ENUM.IMAGE_FULL:
+        pathResult = fileFound.path;
+        break;
+      case IMAGE_THUMB_ENUM.IMAGE_THUMBNAIL:
+        pathResult = `${fileFound.path.split(".")[0]}__thumbnail.jpeg`;
+        break;
+    }
+  }
+
+  return pathResult;
+}
+
+function createThumbnails(filesArray, next) {
+  return new Promise((resolve, rejects) => {
+    let imagesToProcessAmount = filesArray.length;
+
+    filesArray.forEach((file) => {
+      const thumbnailFileName =
+        "uploads/images/" + file.filename.split(".")[0] + "__thumbnail";
+
+      sharp(file.path)
+        .resize(100, 75)
+        .toFormat("jpeg")
+        .jpeg({ quality: 80 })
+        .toFile(`${thumbnailFileName}.jpeg`)
+        .then(() => {
+          imagesToProcessAmount--;
+          if (imagesToProcessAmount === 0) resolve(true);
+        })
+        .catch((error) => {
+          rejects(error.message);
+        });
+    });
+  });
+}
+
+function checkIfEveryFileExistsIncludingThumbnails(filesArray, next) {
+  filesArray.forEach((file) => {
+    const index = __dirname.indexOf("backend\\");
+    const pathBase = __dirname.slice(0, index + 8);
+    //check file image
+    const imagePath = pathBase + file.path;
+    checkIfFileExistsAndThrowErrorIfNeeded(imagePath, next);
+    //check thumbnail image
+    const thumbnailFileName = `${file.path.split(".")[0]}__thumbnail.jpeg`;
+    const thumbnailImagePath = pathBase + thumbnailFileName;
+    checkIfFileExistsAndThrowErrorIfNeeded(thumbnailImagePath, next);
+  });
+}
+
+function checkIfFileExistsAndThrowErrorIfNeeded(filePath, next) {
+  try {
+    if (Fs.existsSync(filePath)) return;
+    else {
+      console.log("error in try");
+      return next(
+        new HttpError(
+          `Creation of files in server failed, try again please. file: ${filePath}`,
+          500
+        )
+      );
+    }
+  } catch (error) {
+    console.log("error in catch");
+    return next(
+      new HttpError(
+        `Creation of files in server failed, try again please. file: ${filePath}`,
+        500
+      )
+    );
   }
 }
 

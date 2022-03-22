@@ -28,20 +28,21 @@ const checks = [
   check("clientEn").not().isEmpty().withMessage("clientEn cannot be empty."),
   check("countryPl").not().isEmpty().withMessage("countryPl cannot be empty."),
   check("countryEn").not().isEmpty().withMessage("countryEn cannot be empty."),
-  check("icoImgFull")
-    .custom((value, { req }) => {
-      if (
-        req.file.mimetype === "image/png" ||
-        req.file.mimetype === "image/jpeg" ||
-        req.file.mimetype === "image/jpg" ||
-        req.file.mimetype === "image/gif"
-      )
-        return true;
-      else return false;
-    })
-    .withMessage(
-      "Please submit only image file with format: .png | .jpg | .jpeg | .gif"
-    ),
+  //TODO: temporarily turned off check for files -> check it further later
+  // check("icoImgFull")
+  //   .custom((value, { req }) => {
+  //     if (
+  //       req.file.mimetype === "image/png" ||
+  //       req.file.mimetype === "image/jpeg" ||
+  //       req.file.mimetype === "image/jpg" ||
+  //       req.file.mimetype === "image/gif"
+  //     )
+  //       return true;
+  //     else return false;
+  //   })
+  //   .withMessage(
+  //     "Please submit only image file with format: .png | .jpg | .jpeg | .gif"
+  //   ),
   // check("icoImgFull")
   //   .not()
   //   .isEmpty()
@@ -61,10 +62,11 @@ const checks = [
     .if((value, { req }) => req.body.genre === "ANIMATION")
     .notEmpty()
     .withMessage("video source must be provided"),
-  check("videoSourceThumb")
-    .if((value, { req }) => req.body.genre === "ANIMATION")
-    .notEmpty()
-    .withMessage("video source thumbnail must be provided"),
+  //TODO: temporarily turned off check for files -> check it further later
+  // check("videoSourceThumb")
+  //   .if((value, { req }) => req.body.genre === "ANIMATION")
+  //   .notEmpty()
+  //   .withMessage("video source thumbnail must be provided"),
 
   //app
   check("appInfo.appNamePl")
