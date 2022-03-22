@@ -255,6 +255,8 @@ function updateProject(req, existingProject) {
 }
 
 function createNewProjectFactory(req, projectGenre) {
+  console.log(req.body);
+
   const {
     genre,
     projNamePl,
@@ -266,8 +268,6 @@ function createNewProjectFactory(req, projectGenre) {
     clientEn,
     countryPl,
     countryEn,
-    icoImgFull,
-    icoImgThumb,
     projectType,
   } = req.body;
 

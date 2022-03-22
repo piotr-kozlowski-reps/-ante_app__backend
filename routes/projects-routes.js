@@ -47,10 +47,6 @@ const checks = [
   //   .not()
   //   .isEmpty()
   //   .withMessage("icoImgFull cannot be empty."),
-  check("icoImgThumb")
-    .not()
-    .isEmpty()
-    .withMessage("icoImgThumb cannot be empty."),
   check("projectType")
     .isArray({ min: 1 })
     .withMessage("at least one type must be provided")
