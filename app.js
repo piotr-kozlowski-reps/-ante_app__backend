@@ -4,6 +4,7 @@ const HttpError = require("./models/http-error");
 const mongoose = require("mongoose");
 const fs = require("fs");
 const path = require("path");
+const utils = require("./shared/utils");
 //env
 const env = "development";
 const config = require("./config")[env];
@@ -43,9 +44,20 @@ app.use((error, req, res, next) => {
   if (req.files) {
     console.log("deleting file");
     req.files.forEach((file) => {
+      //delete of main image
       fs.unlink(file.path, (err) => {
         console.log(err);
       });
+
+      //delete of thumbnail image
+      const thumbnailPath = utils.createPathOfThumbnailBasedOnFilePath(
+        file.path
+      );
+      if (fs.existsSync(thumbnailPath)) {
+        fs.unlink(thumbnailPath, (err) => {
+          console.log(err);
+        });
+      }
     });
   }
 

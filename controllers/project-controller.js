@@ -4,6 +4,7 @@ const HttpError = require("../models/http-error");
 const { validationResult } = require("express-validator");
 const sharp = require("sharp");
 const Fs = require("fs");
+const utils = require("../shared/utils");
 
 const Project = require("../models/project");
 const ProjectGraphic = require("../models/ProjectGraphic");
@@ -255,7 +256,8 @@ function updateProject(req, existingProject) {
 }
 
 function createNewProjectFactory(req, projectGenre) {
-  console.log(req.body);
+  console.log("body", req.body);
+  console.log("files", req.files);
 
   const {
     genre,
@@ -316,7 +318,7 @@ function createNewProjectFactory(req, projectGenre) {
     case "APP":
       return new ProjectApp({
         ...newProjectCommons,
-        appInfo: req.body.appInfo,
+        appInfo: fillAppObject(req.body.appInfo, req.files),
       });
 
     case "PANORAMA":
@@ -330,6 +332,27 @@ function createNewProjectFactory(req, projectGenre) {
   }
 }
 
+function fillAppObject(bodyAppInfo, files) {
+  return {
+    appNamePl: bodyAppInfo.appNamePl,
+    appNameEn: bodyAppInfo.appNameEn,
+    appDescriptionPl: bodyAppInfo.appDescriptionPl,
+    appDescriptionEn: bodyAppInfo.appDescriptionEn,
+    appAndroidLink: bodyAppInfo.appAndroidLink,
+    appIOSLink: bodyAppInfo.appIOSLink,
+    appImageFull: fillFieldWithPathOfUploadedFile(
+      files,
+      "appInfo[appImageFull]",
+      IMAGE_THUMB_ENUM.IMAGE_FULL
+    ),
+    appImageThumb: fillFieldWithPathOfUploadedFile(
+      files,
+      "appInfo[appImageFull]",
+      IMAGE_THUMB_ENUM.IMAGE_THUMBNAIL
+    ),
+  };
+}
+
 function fillFieldWithPathOfUploadedFile(filesArray, formFieldName, imageType) {
   let pathResult = "";
 
@@ -341,7 +364,7 @@ function fillFieldWithPathOfUploadedFile(filesArray, formFieldName, imageType) {
         pathResult = fileFound.path;
         break;
       case IMAGE_THUMB_ENUM.IMAGE_THUMBNAIL:
-        pathResult = `${fileFound.path.split(".")[0]}__thumbnail.jpeg`;
+        pathResult = utils.createPathOfThumbnailBasedOnFilePath(fileFound.path);
         break;
     }
   }
@@ -357,13 +380,14 @@ function createThumbnails(filesArray, next) {
       const thumbnailFileName =
         "uploads/images/" + file.filename.split(".")[0] + "__thumbnail";
 
-      sharp(file.path)
+      const thumbnailResult = sharp(file.path)
         .resize(100, 75)
         .toFormat("jpeg")
         .jpeg({ quality: 80 })
         .toFile(`${thumbnailFileName}.jpeg`)
         .then(() => {
           imagesToProcessAmount--;
+          console.log({ thumbnailResult });
           if (imagesToProcessAmount === 0) resolve(true);
         })
         .catch((error) => {

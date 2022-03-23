@@ -73,14 +73,14 @@ const checks = [
     .if((value, { req }) => req.body.genre === "APP")
     .notEmpty()
     .withMessage("application name (in english) cannot be empty."),
-  check("appInfo.appImageFull")
-    .if((value, { req }) => req.body.genre === "APP")
-    .notEmpty()
-    .withMessage("application image source must be provided."),
-  check("appInfo.appImageThumb")
-    .if((value, { req }) => req.body.genre === "APP")
-    .notEmpty()
-    .withMessage("application image thumbnail source must be provided."),
+  // check("appInfo.appImageFull")
+  //   .if((value, { req }) => req.body.genre === "APP")
+  //   .notEmpty()
+  //   .withMessage("application image source must be provided."),
+  // check("appInfo.appImageThumb")
+  //   .if((value, { req }) => req.body.genre === "APP")
+  //   .notEmpty()
+  //   .withMessage("application image thumbnail source must be provided."),
   check("appInfo.appDescriptionPl")
     .if((value, { req }) => req.body.genre === "APP")
     .notEmpty()
