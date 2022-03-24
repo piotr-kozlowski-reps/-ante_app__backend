@@ -207,7 +207,27 @@ const deleteProjectById = async (req, res, next) => {
     return next(new HttpError("Could not find project with provided id.", 400));
   }
 
-  const allImagesToDeleteArray = sdfsdf;
+  console.log(existingProject);
+
+  const pathsOfAllFilesToBeDeleted = [];
+  extractPathsOfAllFilesToBeDeleted(existingProject);
+
+  function extractPathsOfAllFilesToBeDeleted(obj) {
+    Object.keys(obj).forEach((key) => {
+      const isString =
+        Object.prototype.toString.call(obj[key]) === "[object String]";
+
+      if (isString && obj[key].startsWith("uploads\\images\\")) {
+        pathsOfAllFilesToBeDeleted.push(obj[key]);
+      }
+
+      if (typeof obj[key] === "object" && obj[key] !== null) {
+        extractPathsOfAllFilesToBeDeleted(obj[key]);
+      }
+    });
+  }
+
+  console.log({ pathsOfAllFilesToBeDeleted });
 
   try {
     await existingProject.remove();
@@ -484,6 +504,21 @@ function checkIfFileExistsAndThrowErrorIfNeeded(filePath, next) {
       )
     );
   }
+}
+
+function extractPathsOfAllFilesToBeDeleted(obj, pathsOfAllFilesToBeDeleted) {
+  Object.keys(obj).forEach((key) => {
+    const isString =
+      Object.prototype.toString.call(obj[key]) === "[object String]";
+
+    if (isString && obj[key].startsWith("uploads\\images\\")) {
+      pathsOfAllFilesToBeDeleted.push(obj[key]);
+    }
+
+    if (typeof obj[key] === "object" && obj[key] !== null) {
+      extractPathsOfAllFilesToBeDeleted(obj[key]);
+    }
+  });
 }
 
 exports.getProjects = getProjects;
