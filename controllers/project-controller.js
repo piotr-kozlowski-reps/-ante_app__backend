@@ -207,6 +207,8 @@ const deleteProjectById = async (req, res, next) => {
     return next(new HttpError("Could not find project with provided id.", 400));
   }
 
+  const allImagesToDeleteArray = sdfsdf;
+
   try {
     await existingProject.remove();
   } catch (err) {
@@ -221,6 +223,7 @@ const deleteProjectById = async (req, res, next) => {
   res.status(200).json({ message: "Project deleted." });
 };
 
+////
 ////utils
 function updateProject(req, existingProject) {
   existingProject.projNamePl = req.body.projNamePl;
@@ -301,7 +304,7 @@ function createNewProjectFactory(req, projectGenre) {
     case "GRAPHIC":
       return new ProjectGraphic({
         ...newProjectCommons,
-        images: req.body.images,
+        images: fillGraphicArrayWithObjects(req.body, req.files),
       });
 
     case "ANIMATION":
@@ -324,7 +327,7 @@ function createNewProjectFactory(req, projectGenre) {
     case "PANORAMA":
       return new ProjectPanorama({
         ...newProjectCommons,
-        panoramas: req.body.panoramas,
+        panoramas: fillPanoramaArrayWithObjects(req.body, req.files),
       });
 
     default:
@@ -351,6 +354,55 @@ function fillAppObject(bodyAppInfo, files) {
       IMAGE_THUMB_ENUM.IMAGE_THUMBNAIL
     ),
   };
+}
+
+function fillGraphicArrayWithObjects(body, filesArray) {
+  return (imagesResult = body.images.map((image, index) => {
+    return {
+      imageAltPl: image.imageAltPl,
+      imageAltEn: image.imageAltEn,
+      isBig: image.isBig,
+      imageSourceFull: fillFieldWithPathOfUploadedFile(
+        filesArray,
+        `images[${index}][imageSourceFull]`,
+        IMAGE_THUMB_ENUM.IMAGE_FULL
+      ),
+      imageSourceThumb: fillFieldWithPathOfUploadedFile(
+        filesArray,
+        `images[${index}][imageSourceFull]`,
+        IMAGE_THUMB_ENUM.IMAGE_THUMBNAIL
+      ),
+    };
+  }));
+}
+
+function fillPanoramaArrayWithObjects(body, filesArray) {
+  return body.panoramas.map((panorama, index) => {
+    return {
+      panoramaTitlePl: panorama.panoramaTitlePl,
+      panoramaTitleEn: panorama.panoramaTitleEn,
+      panoramaIcoFull: fillFieldWithPathOfUploadedFile(
+        filesArray,
+        `panoramas[${index}][panoramaIcoFull]`,
+        IMAGE_THUMB_ENUM.IMAGE_FULL
+      ),
+      panoramaIcoThumb: fillFieldWithPathOfUploadedFile(
+        filesArray,
+        `panoramas[${index}][panoramaIcoFull]`,
+        IMAGE_THUMB_ENUM.IMAGE_THUMBNAIL
+      ),
+      panoramaImageSourceFull: fillFieldWithPathOfUploadedFile(
+        filesArray,
+        `panoramas[${index}][panoramaImageSourceFull]`,
+        IMAGE_THUMB_ENUM.IMAGE_FULL
+      ),
+      panoramaImageSourceFullThumb: fillFieldWithPathOfUploadedFile(
+        filesArray,
+        `panoramas[${index}][panoramaImageSourceFull]`,
+        IMAGE_THUMB_ENUM.IMAGE_THUMBNAIL
+      ),
+    };
+  });
 }
 
 function fillFieldWithPathOfUploadedFile(filesArray, formFieldName, imageType) {

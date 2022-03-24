@@ -103,14 +103,14 @@ const checks = [
     .if((value, { req }) => req.body.genre === "GRAPHIC")
     .isArray({ min: 1 })
     .withMessage("at least one image must be provided."),
-  check("images.*.imageSourceFull")
-    .if((value, { req }) => req.body.genre === "GRAPHIC")
-    .notEmpty()
-    .withMessage("image source must be provided."),
-  check("images.*.imageSourceThumb")
-    .if((value, { req }) => req.body.genre === "GRAPHIC")
-    .notEmpty()
-    .withMessage("image source thumbnail must be provided."),
+  // check("images.*.imageSourceFull")
+  //   .if((value, { req }) => req.body.genre === "GRAPHIC")
+  //   .notEmpty()
+  //   .withMessage("image source must be provided."),
+  // check("images.*.imageSourceThumb")
+  //   .if((value, { req }) => req.body.genre === "GRAPHIC")
+  //   .notEmpty()
+  //   .withMessage("image source thumbnail must be provided."),
   check("images.*.imageAltPl")
     .if((value, { req }) => req.body.genre === "GRAPHIC")
     .notEmpty()
@@ -137,22 +137,22 @@ const checks = [
     .if((value, { req }) => req.body.genre === "PANORAMA")
     .notEmpty()
     .withMessage("image description (ALT) (in english) cannot be empty."),
-  check("panoramas.*.panoramaIcoFull")
-    .if((value, { req }) => req.body.genre === "PANORAMA")
-    .notEmpty()
-    .withMessage("panorama icon source file must be provided."),
-  check("panoramas.*.panoramaIcoThumb")
-    .if((value, { req }) => req.body.genre === "PANORAMA")
-    .notEmpty()
-    .withMessage("panorama icon thumbnail source file must be provided."),
-  check("panoramas.*.panoramaImageSourceFull")
-    .if((value, { req }) => req.body.genre === "PANORAMA")
-    .notEmpty()
-    .withMessage("panorama image source file must be provided."),
-  check("panoramas.*.panoramaImageSourceFullThumb")
-    .if((value, { req }) => req.body.genre === "PANORAMA")
-    .notEmpty()
-    .withMessage("panorama image thumbnail source file must be provided."),
+  // check("panoramas.*.panoramaIcoFull")
+  //   .if((value, { req }) => req.body.genre === "PANORAMA")
+  //   .notEmpty()
+  //   .withMessage("panorama icon source file must be provided."),
+  // check("panoramas.*.panoramaIcoThumb")
+  //   .if((value, { req }) => req.body.genre === "PANORAMA")
+  //   .notEmpty()
+  //   .withMessage("panorama icon thumbnail source file must be provided."),
+  // check("panoramas.*.panoramaImageSourceFull")
+  //   .if((value, { req }) => req.body.genre === "PANORAMA")
+  //   .notEmpty()
+  //   .withMessage("panorama image source file must be provided."),
+  // check("panoramas.*.panoramaImageSourceFullThumb")
+  //   .if((value, { req }) => req.body.genre === "PANORAMA")
+  //   .notEmpty()
+  //   .withMessage("panorama image thumbnail source file must be provided."),
 ];
 //types validation
 const typesValidValues = [
@@ -185,13 +185,7 @@ function customTypeValidation(typesArray) {
 const router = express.Router();
 
 router.get("/", projectControllers.getProjects);
-router.post(
-  "/",
-  // fileUpload.single("icoImgFull"),
-  fileUpload.any(),
-  checks,
-  projectControllers.createProject
-);
+router.post("/", fileUpload.any(), checks, projectControllers.createProject);
 
 router.get("/:projectId", projectControllers.getProjectById);
 router.patch("/:projectId", checks, projectControllers.updateProjectById);
