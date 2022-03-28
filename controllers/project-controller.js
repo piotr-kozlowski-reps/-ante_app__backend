@@ -318,7 +318,33 @@ function updateProjectHelper(req, existingProject) {
       break;
 
     case "APP":
-      existingProject.appInfo = req.body.appInfo;
+      existingProject.appInfo.appNamePl = req.body.appInfo["appNamePl"];
+      existingProject.appInfo.appNameEn = req.body.appInfo["appNameEn"];
+      existingProject.appInfo.appDescriptionPl =
+        req.body.appInfo["appDescriptionPl"];
+      existingProject.appInfo.appDescriptionEn =
+        req.body.appInfo["appDescriptionEn"];
+      existingProject.appInfo.appAndroidLink =
+        req.body.appInfo["appAndroidLink"];
+      existingProject.appInfo.appIOSLink = req.body.appInfo["appIOSLink"];
+      existingProject.appInfo.appImageFull = fillFieldWithPathOfUploadedFile(
+        req.files,
+        "appInfo[appImageFull]",
+        req.body.appInfo["appImageFull"],
+        IMAGE_THUMB_ENUM.IMAGE_FULL,
+        existingProject
+      );
+      existingProject.appInfo.appImageThumb = fillFieldWithPathOfUploadedFile(
+        req.files,
+        "appInfo[appImageFull]",
+        req.body.appInfo["appImageThumb"],
+        IMAGE_THUMB_ENUM.IMAGE_THUMBNAIL,
+        existingProject
+      );
+
+      // appImageFull: 'uploads\\images\\phone_melbeck_1648473925203.png',
+      // appImageThumb: 'uploads\\images\\phone_melbeck_1648473925203__thumbnail.jpeg',
+
       break;
 
     case "PANORAMA":
@@ -431,6 +457,41 @@ function fillAppObject(bodyAppInfo, files) {
   };
 }
 
+function updateAppObjectWithData(body, filesArray, existingProject) {
+  console.log(body.appInfo);
+  console.log(filesArray);
+
+  return {
+    appNamePl: body.appInfo.appNamePl,
+    appNameEn: body.appInfo.appNameEn,
+    appDescriptionPl: body.appInfo.appDescriptionPl,
+    appDescriptionEn: body.appInfo.appDescriptionEn,
+    appAndroidLink: body.appInfo.appAndroidLink,
+    appIOSLink: body.appInfo.appIOSLink,
+    appImageFull: fillFieldWithPathOfUploadedFile(
+      filesArray,
+      "appInfo[appImageFull]",
+      existingProject,
+      IMAGE_THUMB_ENUM.IMAGE_FULL
+    ),
+
+    // imageSourceFull: fillFieldWithPathOfUploadedFile(
+    //   filesArray,
+    //   `images[${index}][imageSourceFull]`,
+    //   image.imageSourceFull,
+    //   IMAGE_THUMB_ENUM.IMAGE_FULL,
+    //   existingProject
+    // ),
+    // imageSourceThumb: fillFieldWithPathOfUploadedFile(
+    //   filesArray,
+    //   `images[${index}][imageSourceFull]`,
+    //   image.imageSourceFull,
+    //   IMAGE_THUMB_ENUM.IMAGE_THUMBNAIL,
+    //   null
+    // ),
+  };
+}
+
 function fillGraphicArrayWithObjects(body, filesArray) {
   return body.images.map((image, index) => {
     return {
@@ -456,22 +517,6 @@ function fillGraphicArrayWithObjects(body, filesArray) {
 function updateGraphicArrayWithObjects(body, filesArray, existingProject) {
   return body.images.map((image, index) => {
     return {
-      // imageAltPl: eval(`body.images[${index}]["imageAltPl"]`),
-      // imageAltEn: eval(`body.images[${index}]["imageAltEn"]`),
-      // imageSourceFull: fillFieldWithPathOfUploadedFile(
-      //   filesArray,
-      //   `images[${index}][imageSourceFull]`,
-      //   eval(`body.images[${index}]["imageSourceFull"]`),
-      //   IMAGE_THUMB_ENUM.IMAGE_FULL,
-      //   existingProject
-      // ),
-      // imageSourceThumb: fillFieldWithPathOfUploadedFile(
-      //   filesArray,
-      //   `images[${index}][imageSourceFull]`,
-      //   eval(`body.images[${index}]["imageSourceFull"]`),
-      //   IMAGE_THUMB_ENUM.IMAGE_THUMBNAIL,
-      //   null
-      // ),
       imageAltPl: image.imageAltPl,
       imageAltEn: image.imageAltEn,
       isBig: image.isBig,
@@ -582,9 +627,10 @@ function fillFieldWithPathOfUploadedFile(
       console.log("deleting old file");
 
       //deleting image
-      // const fileToBeDeletedPath = eval(`existingProject.${formFieldName}`);
       const fileToBeDeletedPath = eval(
-        `existingProject.images[0]["imageSourceFull"]`
+        `existingProject.${createGoodPathToExtractValueFromObject(
+          formFieldName
+        )}`
       );
 
       if (Fs.existsSync(fileToBeDeletedPath)) {
@@ -725,6 +771,23 @@ function extractPathsOfAllFilesToBeDeleted(project) {
   }
 
   return resultArray;
+}
+
+function createGoodPathToExtractValueFromObject(formFieldName) {
+  const foundMatch = formFieldName.match(/(\[[A-Za-z0-9]+\]$)/);
+
+  if (!foundMatch) return formFieldName;
+
+  const foundAreaToBeChanged = foundMatch[0];
+  const unchangeablePathOfPath = formFieldName.replace(
+    foundAreaToBeChanged,
+    ""
+  );
+
+  return `${unchangeablePathOfPath}${foundAreaToBeChanged.substring(
+    0,
+    1
+  )}"${foundAreaToBeChanged.substring(1, foundAreaToBeChanged.length - 1)}"]`;
 }
 
 exports.getProjects = getProjects;
