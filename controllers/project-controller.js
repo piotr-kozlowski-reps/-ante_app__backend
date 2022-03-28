@@ -318,37 +318,20 @@ function updateProjectHelper(req, existingProject) {
       break;
 
     case "APP":
-      existingProject.appInfo.appNamePl = req.body.appInfo["appNamePl"];
-      existingProject.appInfo.appNameEn = req.body.appInfo["appNameEn"];
-      existingProject.appInfo.appDescriptionPl =
-        req.body.appInfo["appDescriptionPl"];
-      existingProject.appInfo.appDescriptionEn =
-        req.body.appInfo["appDescriptionEn"];
-      existingProject.appInfo.appAndroidLink =
-        req.body.appInfo["appAndroidLink"];
-      existingProject.appInfo.appIOSLink = req.body.appInfo["appIOSLink"];
-      existingProject.appInfo.appImageFull = fillFieldWithPathOfUploadedFile(
+      existingProject.appInfo = updateAppObjectWithData(
+        req.body,
         req.files,
-        "appInfo[appImageFull]",
-        req.body.appInfo["appImageFull"],
-        IMAGE_THUMB_ENUM.IMAGE_FULL,
         existingProject
       );
-      existingProject.appInfo.appImageThumb = fillFieldWithPathOfUploadedFile(
-        req.files,
-        "appInfo[appImageFull]",
-        req.body.appInfo["appImageThumb"],
-        IMAGE_THUMB_ENUM.IMAGE_THUMBNAIL,
-        existingProject
-      );
-
-      // appImageFull: 'uploads\\images\\phone_melbeck_1648473925203.png',
-      // appImageThumb: 'uploads\\images\\phone_melbeck_1648473925203__thumbnail.jpeg',
 
       break;
 
     case "PANORAMA":
-      existingProject.panoramas = req.body.panoramas;
+      existingProject.panoramas = updatePanoramaArrayWithObjects(
+        req.body,
+        req.files,
+        existingProject
+      );
       break;
   }
   return existingProject;
@@ -458,37 +441,27 @@ function fillAppObject(bodyAppInfo, files) {
 }
 
 function updateAppObjectWithData(body, filesArray, existingProject) {
-  console.log(body.appInfo);
-  console.log(filesArray);
-
   return {
-    appNamePl: body.appInfo.appNamePl,
-    appNameEn: body.appInfo.appNameEn,
-    appDescriptionPl: body.appInfo.appDescriptionPl,
-    appDescriptionEn: body.appInfo.appDescriptionEn,
-    appAndroidLink: body.appInfo.appAndroidLink,
-    appIOSLink: body.appInfo.appIOSLink,
+    appNamePl: body.appInfo["appNamePl"],
+    appNameEn: body.appInfo["appNameEn"],
+    appDescriptionPl: body.appInfo["appDescriptionPl"],
+    appDescriptionEn: body.appInfo["appDescriptionEn"],
+    appAndroidLink: body.appInfo["appAndroidLink"],
+    appIOSLink: body.appInfo["appIOSLink"],
     appImageFull: fillFieldWithPathOfUploadedFile(
       filesArray,
       "appInfo[appImageFull]",
-      existingProject,
-      IMAGE_THUMB_ENUM.IMAGE_FULL
+      body.appInfo["appImageFull"],
+      IMAGE_THUMB_ENUM.IMAGE_FULL,
+      existingProject
     ),
-
-    // imageSourceFull: fillFieldWithPathOfUploadedFile(
-    //   filesArray,
-    //   `images[${index}][imageSourceFull]`,
-    //   image.imageSourceFull,
-    //   IMAGE_THUMB_ENUM.IMAGE_FULL,
-    //   existingProject
-    // ),
-    // imageSourceThumb: fillFieldWithPathOfUploadedFile(
-    //   filesArray,
-    //   `images[${index}][imageSourceFull]`,
-    //   image.imageSourceFull,
-    //   IMAGE_THUMB_ENUM.IMAGE_THUMBNAIL,
-    //   null
-    // ),
+    appImageThumb: fillFieldWithPathOfUploadedFile(
+      filesArray,
+      "appInfo[appImageFull]",
+      body.appInfo["appImageFull"],
+      IMAGE_THUMB_ENUM.IMAGE_THUMBNAIL,
+      existingProject
+    ),
   };
 }
 
@@ -569,6 +542,65 @@ function fillPanoramaArrayWithObjects(body, filesArray) {
       ),
     };
   });
+}
+
+function updatePanoramaArrayWithObjects(body, filesArray, existingProject) {
+  return body.panoramas.map((panorama, index) => {
+    return {
+      panoramaTitlePl: panorama.panoramaTitlePl,
+      panoramaTitleEn: panorama.panoramaTitleEn,
+      panoramaIcoFull: fillFieldWithPathOfUploadedFile(
+        filesArray,
+        `panoramas[${index}][panoramaIcoFull]`,
+        panorama.panoramaIcoFull,
+        IMAGE_THUMB_ENUM.IMAGE_FULL,
+        existingProject
+      ),
+      panoramaIcoThumb: fillFieldWithPathOfUploadedFile(
+        filesArray,
+        `panoramas[${index}][panoramaIcoFull]`,
+        panorama.panoramaIcoFull,
+        IMAGE_THUMB_ENUM.IMAGE_THUMBNAIL,
+        null
+      ),
+      panoramaImageSourceFull: fillFieldWithPathOfUploadedFile(
+        filesArray,
+        `panoramas[${index}][panoramaImageSourceFull]`,
+        panorama.panoramaImageSourceFull,
+        IMAGE_THUMB_ENUM.IMAGE_FULL,
+        existingProject
+      ),
+      panoramaImageSourceFullThumb: fillFieldWithPathOfUploadedFile(
+        filesArray,
+        `panoramas[${index}][panoramaImageSourceFullThumb]`,
+        panorama.panoramaImageSourceFullThumb,
+        IMAGE_THUMB_ENUM.IMAGE_THUMBNAIL,
+        null
+      ),
+    };
+  });
+
+  // return body.images.map((image, index) => {
+  //   return {
+  //     imageAltPl: image.imageAltPl,
+  //     imageAltEn: image.imageAltEn,
+  //     isBig: image.isBig,
+  //     imageSourceFull: fillFieldWithPathOfUploadedFile(
+  //       filesArray,
+  //       `images[${index}][imageSourceFull]`,
+  //       image.imageSourceFull,
+  //       IMAGE_THUMB_ENUM.IMAGE_FULL,
+  //       existingProject
+  //     ),
+  //     imageSourceThumb: fillFieldWithPathOfUploadedFile(
+  //       filesArray,
+  //       `images[${index}][imageSourceFull]`,
+  //       image.imageSourceFull,
+  //       IMAGE_THUMB_ENUM.IMAGE_THUMBNAIL,
+  //       null
+  //     ),
+  //   };
+  // });
 }
 
 function fillFieldWithPathOfUploadedFile(
