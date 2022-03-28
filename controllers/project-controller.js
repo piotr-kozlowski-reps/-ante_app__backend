@@ -170,22 +170,60 @@ const updateProjectById = async (req, res, next) => {
     );
   }
 
-  existingProject = updateProject(req, existingProject);
+  //update when no new file provided (only paths in string)
+  if (req.files.length === 0) {
+    // updating logic
+    console.log("staring updating file");
 
-  try {
-    await existingProject.save();
-  } catch (err) {
-    return next(
-      new HttpError(
-        `Something went wrong, could not update a project. (${err.message})`,
-        500
-      )
-    );
+    existingProject = updateProjectHelper(req, existingProject);
+
+    try {
+      await existingProject.save();
+    } catch (err) {
+      return next(
+        new HttpError(
+          `Something went wrong, could not update a project. (${err.message})`,
+          500
+        )
+      );
+    }
+
+    res
+      .status(201)
+      .json({ project: existingProject.toObject({ getters: true }) });
+    return;
   }
 
-  res
-    .status(201)
-    .json({ project: existingProject.toObject({ getters: true }) });
+  //update when file/files are provided
+  if (req.files.length > 0) {
+    createThumbnails(req.files, next)
+      .then(async () => {
+        checkIfEveryFileExistsIncludingThumbnails(req.files, next);
+
+        // updating logic
+        console.log("staring updating file");
+
+        existingProject = updateProjectHelper(req, existingProject);
+
+        try {
+          await existingProject.save();
+        } catch (err) {
+          return next(
+            new HttpError(
+              `Something went wrong, could not update a project. (${err.message})`,
+              500
+            )
+          );
+        }
+
+        res
+          .status(201)
+          .json({ project: existingProject.toObject({ getters: true }) });
+      })
+      .catch((errorMessage) => {
+        return next(new HttpError(errorMessage, 400));
+      });
+  }
 };
 
 const deleteProjectById = async (req, res, next) => {
@@ -232,7 +270,10 @@ const deleteProjectById = async (req, res, next) => {
 
 ////
 ////utils
-function updateProject(req, existingProject) {
+function updateProjectHelper(req, existingProject) {
+  console.log("body", req.body);
+  console.log("files", req.files);
+
   existingProject.projNamePl = req.body.projNamePl;
   existingProject.projNameEn = req.body.projNameEn;
   existingProject.completionDate = req.body.completionDate;
@@ -240,18 +281,40 @@ function updateProject(req, existingProject) {
   existingProject.cityEn = req.body.cityEn;
   existingProject.countryPl = req.body.countryPl;
   existingProject.countryEn = req.body.countryEn;
-  existingProject.icoImgFull = req.body.icoImgFull;
-  existingProject.icoImgThumb = req.body.icoImgThumb;
+  (existingProject.icoImgFull = fillFieldWithPathOfUploadedFile(
+    req.files,
+    "icoImgFull",
+    req.body.icoImgFull,
+    IMAGE_THUMB_ENUM.IMAGE_FULL,
+    existingProject
+  )),
+    (existingProject.icoImgThumb = fillFieldWithPathOfUploadedFile(
+      req.files,
+      "icoImgFull",
+      req.body.icoImgFull,
+      IMAGE_THUMB_ENUM.IMAGE_THUMBNAIL,
+      null
+    ));
   existingProject.projectType = req.body.projectType;
 
   switch (req.body.genre) {
-    case "GRAPHIC":
-      existingProject.images = req.body.images;
-      break;
-
     case "ANIMATION":
       existingProject.videoSource = req.body.videoSource;
-      existingProject.videoSourceThumb = req.body.videoSourceThumb;
+      existingProject.videoSourceThumb = fillFieldWithPathOfUploadedFile(
+        req.files,
+        "videoSourceThumb",
+        req.body.videoSourceThumb,
+        IMAGE_THUMB_ENUM.IMAGE_FULL,
+        existingProject
+      );
+      break;
+
+    case "GRAPHIC":
+      existingProject.images = updateGraphicArrayWithObjects(
+        req.body,
+        req.files,
+        existingProject
+      );
       break;
 
     case "APP":
@@ -297,11 +360,13 @@ function createNewProjectFactory(req, projectGenre) {
     icoImgFull: fillFieldWithPathOfUploadedFile(
       req.files,
       "icoImgFull",
+      req.body.icoImgFull,
       IMAGE_THUMB_ENUM.IMAGE_FULL
     ),
     icoImgThumb: fillFieldWithPathOfUploadedFile(
       req.files,
       "icoImgFull",
+      req.body.icoImgFull,
       IMAGE_THUMB_ENUM.IMAGE_THUMBNAIL
     ),
     projectType,
@@ -321,6 +386,7 @@ function createNewProjectFactory(req, projectGenre) {
         videoSourceThumb: fillFieldWithPathOfUploadedFile(
           req.files,
           "videoSourceThumb",
+          req.body.videoSourceThumb,
           IMAGE_THUMB_ENUM.IMAGE_FULL
         ),
       });
@@ -353,18 +419,20 @@ function fillAppObject(bodyAppInfo, files) {
     appImageFull: fillFieldWithPathOfUploadedFile(
       files,
       "appInfo[appImageFull]",
+      null,
       IMAGE_THUMB_ENUM.IMAGE_FULL
     ),
     appImageThumb: fillFieldWithPathOfUploadedFile(
       files,
       "appInfo[appImageFull]",
+      null,
       IMAGE_THUMB_ENUM.IMAGE_THUMBNAIL
     ),
   };
 }
 
 function fillGraphicArrayWithObjects(body, filesArray) {
-  return (imagesResult = body.images.map((image, index) => {
+  return body.images.map((image, index) => {
     return {
       imageAltPl: image.imageAltPl,
       imageAltEn: image.imageAltEn,
@@ -372,15 +440,57 @@ function fillGraphicArrayWithObjects(body, filesArray) {
       imageSourceFull: fillFieldWithPathOfUploadedFile(
         filesArray,
         `images[${index}][imageSourceFull]`,
+        null,
         IMAGE_THUMB_ENUM.IMAGE_FULL
       ),
       imageSourceThumb: fillFieldWithPathOfUploadedFile(
         filesArray,
         `images[${index}][imageSourceFull]`,
+        null,
         IMAGE_THUMB_ENUM.IMAGE_THUMBNAIL
       ),
     };
-  }));
+  });
+}
+
+function updateGraphicArrayWithObjects(body, filesArray, existingProject) {
+  return body.images.map((image, index) => {
+    return {
+      // imageAltPl: eval(`body.images[${index}]["imageAltPl"]`),
+      // imageAltEn: eval(`body.images[${index}]["imageAltEn"]`),
+      // imageSourceFull: fillFieldWithPathOfUploadedFile(
+      //   filesArray,
+      //   `images[${index}][imageSourceFull]`,
+      //   eval(`body.images[${index}]["imageSourceFull"]`),
+      //   IMAGE_THUMB_ENUM.IMAGE_FULL,
+      //   existingProject
+      // ),
+      // imageSourceThumb: fillFieldWithPathOfUploadedFile(
+      //   filesArray,
+      //   `images[${index}][imageSourceFull]`,
+      //   eval(`body.images[${index}]["imageSourceFull"]`),
+      //   IMAGE_THUMB_ENUM.IMAGE_THUMBNAIL,
+      //   null
+      // ),
+      imageAltPl: image.imageAltPl,
+      imageAltEn: image.imageAltEn,
+      isBig: image.isBig,
+      imageSourceFull: fillFieldWithPathOfUploadedFile(
+        filesArray,
+        `images[${index}][imageSourceFull]`,
+        image.imageSourceFull,
+        IMAGE_THUMB_ENUM.IMAGE_FULL,
+        existingProject
+      ),
+      imageSourceThumb: fillFieldWithPathOfUploadedFile(
+        filesArray,
+        `images[${index}][imageSourceFull]`,
+        image.imageSourceFull,
+        IMAGE_THUMB_ENUM.IMAGE_THUMBNAIL,
+        null
+      ),
+    };
+  });
 }
 
 function fillPanoramaArrayWithObjects(body, filesArray) {
@@ -391,33 +501,109 @@ function fillPanoramaArrayWithObjects(body, filesArray) {
       panoramaIcoFull: fillFieldWithPathOfUploadedFile(
         filesArray,
         `panoramas[${index}][panoramaIcoFull]`,
+        null,
         IMAGE_THUMB_ENUM.IMAGE_FULL
       ),
       panoramaIcoThumb: fillFieldWithPathOfUploadedFile(
         filesArray,
         `panoramas[${index}][panoramaIcoFull]`,
+        null,
         IMAGE_THUMB_ENUM.IMAGE_THUMBNAIL
       ),
       panoramaImageSourceFull: fillFieldWithPathOfUploadedFile(
         filesArray,
         `panoramas[${index}][panoramaImageSourceFull]`,
+        null,
         IMAGE_THUMB_ENUM.IMAGE_FULL
       ),
       panoramaImageSourceFullThumb: fillFieldWithPathOfUploadedFile(
         filesArray,
         `panoramas[${index}][panoramaImageSourceFull]`,
+        null,
         IMAGE_THUMB_ENUM.IMAGE_THUMBNAIL
       ),
     };
   });
 }
 
-function fillFieldWithPathOfUploadedFile(filesArray, formFieldName, imageType) {
+function fillFieldWithPathOfUploadedFile(
+  filesArray,
+  formFieldName,
+  fieldData,
+  imageType,
+  existingProject
+) {
   let pathResult = "";
 
+  //check if fieldData is provided, if it is string and if file with provided path exists,
+  //return that path
+  if (
+    fieldData &&
+    Object.prototype.toString.call(fieldData) === "[object String]"
+  ) {
+    try {
+      if (Fs.existsSync(fieldData)) {
+        switch (imageType) {
+          case IMAGE_THUMB_ENUM.IMAGE_FULL:
+            pathResult = fieldData;
+            return pathResult;
+          case IMAGE_THUMB_ENUM.IMAGE_THUMBNAIL:
+            pathResult = utils.createPathOfThumbnailBasedOnFilePath(fieldData);
+            return pathResult;
+        }
+      }
+
+      console.log("error in try");
+      return next(
+        new HttpError(
+          `There's no file on server with provided path, try again please. file: ${fieldData}`,
+          500
+        )
+      );
+    } catch (error) {
+      console.log("error in catch");
+      return next(
+        new HttpError(
+          `Checking if file exists on server failed, try again please. file: ${filePath}`,
+          500
+        )
+      );
+    }
+  }
+
+  //if fieldData is not a string - but a file
+  //At first delete old file and it's thumbnail and path of newly create file
+  //return  path of newly created file
   const fileFound = filesArray.find((file) => file.fieldname === formFieldName);
 
   if (fileFound) {
+    //delete old files if existing project provided
+    if (existingProject) {
+      console.log("deleting old file");
+
+      //deleting image
+      // const fileToBeDeletedPath = eval(`existingProject.${formFieldName}`);
+      const fileToBeDeletedPath = eval(
+        `existingProject.images[0]["imageSourceFull"]`
+      );
+
+      if (Fs.existsSync(fileToBeDeletedPath)) {
+        Fs.unlink(fileToBeDeletedPath, (err) => {
+          console.log(err);
+        });
+      }
+
+      //delete of thumbnail image
+      const thumbnailToBeDeletedPath =
+        utils.createPathOfThumbnailBasedOnFilePath(fileToBeDeletedPath);
+
+      if (Fs.existsSync(thumbnailToBeDeletedPath)) {
+        Fs.unlink(thumbnailToBeDeletedPath, (err) => {
+          console.log(err);
+        });
+      }
+    }
+
     switch (imageType) {
       case IMAGE_THUMB_ENUM.IMAGE_FULL:
         pathResult = fileFound.path;

@@ -188,7 +188,12 @@ router.get("/", projectControllers.getProjects);
 router.post("/", fileUpload.any(), checks, projectControllers.createProject);
 
 router.get("/:projectId", projectControllers.getProjectById);
-router.patch("/:projectId", checks, projectControllers.updateProjectById);
+router.patch(
+  "/:projectId",
+  fileUpload.any(),
+  checks,
+  projectControllers.updateProjectById
+);
 router.delete("/:projectId", projectControllers.deleteProjectById);
 
 module.exports = router;
