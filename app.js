@@ -6,8 +6,8 @@ const fs = require("fs");
 const path = require("path");
 const utils = require("./shared/utils");
 //env
-const env = "development";
-const config = require("./config")[env];
+const currentConfig = require("./shared/currentConfig");
+const config = require("./config")[currentConfig];
 //
 const projectRoutes = require("./routes/projects-routes");
 const loginRoutes = require("./routes/login-routes");
