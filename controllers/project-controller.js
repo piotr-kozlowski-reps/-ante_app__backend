@@ -14,6 +14,7 @@ const ProjectAnimation = require("../models/ProjectAnimation");
 
 const URL_BASE = "http://localhost:5000/";
 const IMAGE_THUMB_ENUM = require("../shared/image-thumb-enum");
+const { log } = require("console");
 
 ////logic
 const getProjects = async (req, res, next) => {
@@ -546,6 +547,11 @@ function fillPanoramaArrayWithObjects(body, filesArray) {
 
 function updatePanoramaArrayWithObjects(body, filesArray, existingProject) {
   return body.panoramas.map((panorama, index) => {
+    // console.log(
+    //   "odnosnik: ",
+    //   eval(`body.panoramas[${index}][panoramaIcoFull]`)
+    // );
+
     return {
       panoramaTitlePl: panorama.panoramaTitlePl,
       panoramaTitleEn: panorama.panoramaTitleEn,
@@ -553,6 +559,7 @@ function updatePanoramaArrayWithObjects(body, filesArray, existingProject) {
         filesArray,
         `panoramas[${index}][panoramaIcoFull]`,
         panorama.panoramaIcoFull,
+        // eval(`body.panoramas[${index}]["panoramaIcoFull"]`),
         IMAGE_THUMB_ENUM.IMAGE_FULL,
         existingProject
       ),
@@ -572,8 +579,8 @@ function updatePanoramaArrayWithObjects(body, filesArray, existingProject) {
       ),
       panoramaImageSourceFullThumb: fillFieldWithPathOfUploadedFile(
         filesArray,
-        `panoramas[${index}][panoramaImageSourceFullThumb]`,
-        panorama.panoramaImageSourceFullThumb,
+        `panoramas[${index}][panoramaImageSourceFull]`,
+        panorama.panoramaImageSourceFull,
         IMAGE_THUMB_ENUM.IMAGE_THUMBNAIL,
         null
       ),
@@ -630,13 +637,15 @@ function fillFieldWithPathOfUploadedFile(
         }
       }
 
-      console.log("error in try");
-      return next(
-        new HttpError(
-          `There's no file on server with provided path, try again please. file: ${fieldData}`,
-          500
-        )
-      );
+      if (!filesArray.find((file) => file.fieldname === formFieldName)) {
+        console.log("error in try");
+        return next(
+          new HttpError(
+            `There's no file on server with provided path and no file provided. Try again please. file: ${fieldData}`,
+            500
+          )
+        );
+      }
     } catch (error) {
       console.log("error in catch");
       return next(
