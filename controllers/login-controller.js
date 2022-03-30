@@ -3,11 +3,23 @@ const User = require("../models/user");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
+//config
 const currentConfig = require("../shared/currentConfig");
 const config = require("../config")[currentConfig];
 
 const login = async (req, res, next) => {
   const { login, password } = req.body;
+
+  //encrypted password generation - start
+  // const desiredPassword = "";
+  // let hashedPassword;
+  // try {
+  //   hashedPassword = await bcrypt.hash(desiredPassword, 12);
+  // } catch (error) {
+  //   return next(new HttpError("Could not create user, please try again", 500));
+  // }
+  // console.log(hashedPassword);
+  //encrypted password generation - end
 
   let existingUser;
   try {
@@ -23,7 +35,7 @@ const login = async (req, res, next) => {
 
   if (!existingUser) {
     return next(
-      new HttpError("Wrong login, there's no user with login provided.", 401)
+      new HttpError("Wrong login, there's no user with login provided.", 403)
     );
   }
 
@@ -34,23 +46,14 @@ const login = async (req, res, next) => {
     return next(
       new HttpError(
         "Could not log you in, please check your credentials and try again.",
-        401
+        403
       )
     );
   }
 
   if (!isValidPassword) {
-    return next(new HttpError("Wrong password.", 401));
+    return next(new HttpError("Wrong password.", 403));
   }
-
-  //encrypted password generation - start
-  // let hashedPassword;
-  // try {
-  //   hashedPassword = await bcrypt.hash(password, 12);
-  // } catch (error) {
-  //   return next(new HttpError("Could not create user, please try again", 500));
-  // }
-  //encrypted password generation - end
 
   let token;
   try {
@@ -65,7 +68,7 @@ const login = async (req, res, next) => {
     return next(
       new HttpError(
         "Could not log you in, please check your credentials and try again.",
-        401
+        403
       )
     );
   }

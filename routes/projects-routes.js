@@ -3,6 +3,7 @@ const { check, body } = require("express-validator");
 
 const projectControllers = require("../controllers/project-controller");
 const fileUpload = require("../middleware/file-upload");
+const checkAuth = require("../middleware/check-auth");
 
 ////utils
 //checks
@@ -184,10 +185,13 @@ function customTypeValidation(typesArray) {
 ////router
 const router = express.Router();
 
+//open routes
 router.get("/", projectControllers.getProjects);
-router.post("/", fileUpload.any(), checks, projectControllers.createProject);
-
 router.get("/:projectId", projectControllers.getProjectById);
+
+//routes needing authorization
+router.use(checkAuth);
+router.post("/", fileUpload.any(), checks, projectControllers.createProject);
 router.patch(
   "/:projectId",
   fileUpload.any(),
