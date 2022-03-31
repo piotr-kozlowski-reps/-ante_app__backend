@@ -4,8 +4,8 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
 //config
-const currentConfig = require("../shared/currentConfig");
-const config = require("../config")[currentConfig];
+// const currentConfig = require("../shared/currentConfig");
+// const config = require("../oldFiles/config")[currentConfig];
 
 const login = async (req, res, next) => {
   const { login, password } = req.body;

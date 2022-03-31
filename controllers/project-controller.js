@@ -14,7 +14,6 @@ const ProjectAnimation = require("../models/ProjectAnimation");
 
 const URL_BASE = "http://localhost:5000/";
 const IMAGE_THUMB_ENUM = require("../shared/image-thumb-enum");
-const { log } = require("console");
 
 ////logic
 const getProjects = async (req, res, next) => {

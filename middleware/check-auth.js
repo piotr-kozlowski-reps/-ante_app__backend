@@ -2,8 +2,8 @@ const jwt = require("jsonwebtoken");
 const HttpError = require("../models/http-error");
 
 //config
-const currentConfig = require("../shared/currentConfig");
-const config = require("../config")[currentConfig];
+// const currentConfig = require("../shared/currentConfig");
+// const config = require("../oldFiles/config")[currentConfig];
 
 module.exports = (req, res, next) => {
   if (req.method === "OPTIONS") return next();
@@ -15,7 +15,7 @@ module.exports = (req, res, next) => {
       throw new Error("Authentication failed");
     }
 
-    const decodedToken = jwt.verify(token, config.key);
+    const decodedToken = jwt.verify(token, process.env.key);
     req.useData = { userId: decodedToken.userId };
     next();
   } catch (error) {
