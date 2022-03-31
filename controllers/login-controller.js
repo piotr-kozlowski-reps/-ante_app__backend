@@ -59,7 +59,7 @@ const login = async (req, res, next) => {
   try {
     token = jwt.sign(
       { login: existingUser.login, id: existingUser.id },
-      config.key,
+      process.env.JWT_KEY,
       {
         expiresIn: "1h",
       }

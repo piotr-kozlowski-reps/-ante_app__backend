@@ -6,8 +6,8 @@ const fs = require("fs");
 const path = require("path");
 const utils = require("./shared/utils");
 //env
-const currentConfig = require("./shared/currentConfig");
-const config = require("./config")[currentConfig];
+// const currentConfig = require("./shared/currentConfig");
+// const config = require("./config")[currentConfig];
 //
 const projectRoutes = require("./routes/projects-routes");
 const loginRoutes = require("./routes/login-routes");
@@ -71,7 +71,7 @@ app.use((error, req, res, next) => {
 
 //db & listener
 mongoose
-  .connect(config.database.url)
+  .connect(process.env.url)
   .then(() => {
     app.listen(5000);
   })
