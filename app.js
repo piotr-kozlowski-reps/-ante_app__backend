@@ -28,9 +28,9 @@ app.use((req, res, next) => {
 });
 
 //routes
+app.use("/uploads/images", express.static(path.join("uploads", "images")));
 app.use("/api/projects", projectRoutes);
 app.use("/api/login", loginRoutes);
-app.use("/uploads/images", express.static(path.join("uploads", "images")));
 
 //errors
 app.use((req, res, next) => {
@@ -38,9 +38,6 @@ app.use((req, res, next) => {
 });
 
 app.use((error, req, res, next) => {
-  //if request fails - delete image uploaded
-  // console.log("files: ", req.files);
-
   if (req.files) {
     console.log("deleting file");
     req.files.forEach((file) => {
