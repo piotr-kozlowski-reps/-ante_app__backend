@@ -12,7 +12,6 @@ const ProjectApp = require("../models/ProjectApp");
 const ProjectPanorama = require("../models/ProjectPanorama");
 const ProjectAnimation = require("../models/ProjectAnimation");
 
-const URL_BASE = "http://localhost:5000/";
 const IMAGE_THUMB_ENUM = require("../shared/image-thumb-enum");
 
 ////logic
