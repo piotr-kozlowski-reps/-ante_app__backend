@@ -12,6 +12,7 @@ const cors = require("cors");
 //
 const projectRoutes = require("./routes/projects-routes");
 const loginRoutes = require("./routes/login-routes");
+const contactRoutes = require("./routes/contact-routes");
 
 ////express
 const app = express();
@@ -31,9 +32,14 @@ app.use(bodyParser.json());
 // });
 
 //routes
-app.use("/uploads/images", express.static(path.join("uploads", "images")));
+// app.use("/uploads/images", express.static(path.join("uploads", "images"))); ???
+app.use(
+  "/uploads/images",
+  express.static(path.join(__dirname, "uploads", "images"))
+); //???
 app.use("/api/projects", projectRoutes);
 app.use("/api/login", loginRoutes);
+app.use("/api/contact", contactRoutes);
 
 //errors
 app.use((req, res, next) => {
