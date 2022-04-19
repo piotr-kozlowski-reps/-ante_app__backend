@@ -12,6 +12,7 @@ const contact = async (req, res, next) => {
 
   const { name, surname, email, phone, textContent, lang } = req.body;
 
+  //messages internal email
   const outputInternalEmailAsHTML = `
   <p>New contact form request</p>
   <h3>Contact details</h3>
@@ -36,10 +37,12 @@ const contact = async (req, res, next) => {
   Contact Form Text: ${textContent}
   `;
 
+  //messages external email
   const outputClientEmailAsHtmlEn = `
-  <h3>Message was sent</h3>
-  <p>Hi, ${name}</p>
-  <h3>Email with data such a data has been sent to us.</h3>
+  <h3>Your message has been sent.</h3>
+  <br/>
+  <h4>Hi, ${name}</h4>
+  <p>This email has been sent automatically, don't answer it. Your message from contact form has been sent with data:</p>
   <ul>
   <li>Name: ${name}</li>
   <li>Surname: ${surname}</li>
@@ -57,8 +60,9 @@ const contact = async (req, res, next) => {
 
   const outputClientEmailAsHtmlPl = `
   <h3>Wiadomość została wysłana</h3>
-  <p>Hi, ${name}</p>
-  <h3>Dane przez Ciebie przekazane:</h3>
+  <br/>
+  <h4>Dzień dobry, ${name}</h4>
+  <P>To wiadomość automatyczna, nie odpowiadaj na nią. Twoja wiadomość z formularza kontaktowego została wysłana z następującymi danymi:</P>
   <ul>
   <li>Imię: ${name}</li>
   <li>Nazwisko: ${surname}</li>
@@ -71,9 +75,10 @@ const contact = async (req, res, next) => {
   <p>Dziękujemy za wiadomość. Odpowiemy wkrótce.</p>
   <br/>
   <p>Pozdrawiamy,</p>
-  <p>Firma Ante</p>
+  <p>Zespół Ante</p>
   `;
 
+  ////sending
   let transporter = nodemailer.createTransport({
     host: process.env.NODEMAILER_HOST,
     port: process.env.NODEMAILER_PORT,
@@ -87,6 +92,7 @@ const contact = async (req, res, next) => {
     },
   });
 
+  //internal e-mail
   let mailOptions = {
     from: `"Nodemailer contact" <${process.env.NODEMAILER_USER}>`, // sender address
     to: `${process.env.NODEMAILER_TO_EMAIL}`, // list of receivers
@@ -96,6 +102,30 @@ const contact = async (req, res, next) => {
   };
 
   transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      return console.log(error);
+    }
+    console.log("Message sent: %s", info.messageId);
+    console.log("Preview url: %s", nodemailer.getTestMessageUrl(info));
+  });
+
+  //external e-mail
+  const fromAndSubjectField =
+    lang === "pl"
+      ? `ANTE - Formularz kontaktowy - odpowiedź automatycza na <${process.env.NODEMAILER_USER}>`
+      : `ANTE - Contact Form - automatic response <${process.env.NODEMAILER_USER}>`;
+  const htmlField =
+    lang === "pl" ? outputClientEmailAsHtmlPl : outputClientEmailAsHtmlEn;
+
+  let automaticMailOptions = {
+    from: fromAndSubjectField, // sender address
+    to: email, // list of receivers
+    subject: fromAndSubjectField, // Subject line
+    text: htmlField, // plain text body
+    html: htmlField, // html body
+  };
+
+  transporter.sendMail(automaticMailOptions, (error, info) => {
     if (error) {
       return console.log(error);
     }
