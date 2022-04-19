@@ -74,34 +74,34 @@ const contact = async (req, res, next) => {
   <p>Firma Ante</p>
   `;
 
-  // let transporter = nodemailer.createTransport({
-  //   host: process.env.NODEMAILER_HOST,
-  //   port: process.env.NODEMAILER_PORT,
-  //   secure: false, // true for 465, false for other ports
-  //   auth: {
-  //     user: process.env.NODEMAILER_USER, // generated ethereal user
-  //     pass: process.env.NODEMAILER_PASS, // generated ethereal password
-  //   },
-  //   tls: {
-  //     rejectUnauthorized: false,
-  //   },
-  // });
+  let transporter = nodemailer.createTransport({
+    host: process.env.NODEMAILER_HOST,
+    port: process.env.NODEMAILER_PORT,
+    secure: false, // true for 465, false for other ports
+    auth: {
+      user: process.env.NODEMAILER_USER,
+      pass: process.env.NODEMAILER_PASS,
+    },
+    tls: {
+      rejectUnauthorized: false,
+    },
+  });
 
-  // let mailOptions = {
-  //   from: `"Nodemailer contact" <${process.env.NODEMAILER_USER}>`, // sender address
-  //   to: `${process.env.NODEMAILER_TO_EMAIL}`, // list of receivers
-  //   subject: "ANTE.PL - Contact Form", // Subject line
-  //   text: outputInternalEmailAsPLainText, // plain text body
-  //   html: outputInternalEmailAsHTML, // html body
-  // };
+  let mailOptions = {
+    from: `"Nodemailer contact" <${process.env.NODEMAILER_USER}>`, // sender address
+    to: `${process.env.NODEMAILER_TO_EMAIL}`, // list of receivers
+    subject: "ANTE.PL - Contact Form", // Subject line
+    text: outputInternalEmailAsPLainText, // plain text body
+    html: outputInternalEmailAsHTML, // html body
+  };
 
-  // transporter.sendMail(mailOptions, (error, info) => {
-  //   if (error) {
-  //     return console.log(error);
-  //   }
-  //   console.log("Message sent: %s", info.messageId);
-  //   console.log("Preview url: %s", nodemailer.getTestMessageUrl(info));
-  // });
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      return console.log(error);
+    }
+    console.log("Message sent: %s", info.messageId);
+    console.log("Preview url: %s", nodemailer.getTestMessageUrl(info));
+  });
 
   res.json({
     messagePl: "Formularz kontaktowy został wysłany, dziękujemy.",
