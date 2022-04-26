@@ -36,7 +36,7 @@ app.use(bodyParser.json());
 app.use(
   "/uploads/images",
   express.static(path.join(__dirname, "uploads", "images"))
-); //???
+);
 app.use("/api/projects", projectRoutes);
 app.use("/api/login", loginRoutes);
 app.use("/api/contact", contactRoutes);
