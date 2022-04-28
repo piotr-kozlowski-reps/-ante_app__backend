@@ -32,7 +32,10 @@ app.use(bodyParser.json());
 // });
 
 //routes
-// app.use("/uploads/images", express.static(path.join("uploads", "images"))); ???
+// app.use("/uploads/images", express.static(path.join("uploads", "images")));
+
+//
+
 app.use(
   "/uploads/images",
   express.static(path.join(__dirname, "uploads", "images"))
