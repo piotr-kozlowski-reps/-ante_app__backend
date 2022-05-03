@@ -81,7 +81,7 @@ const getProjectById = async (req, res, next) => {
 };
 
 const createProject = async (req, res, next) => {
-  //validating errors
+  // //validating errors
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     const errorsMessages = errors.errors.map((error) => {
@@ -93,38 +93,32 @@ const createProject = async (req, res, next) => {
     return next(new HttpError(JSON.stringify(errorsMessages), 422));
   }
 
-  createThumbnails(req.files, next)
-    .then(async () => {
-      checkIfEveryFileExistsIncludingThumbnails(req.files, next);
+  // creating logic
+  console.log("staring creating file");
+  const projectGenre = req.body.genre;
+  console.log("request_body: ", req.body);
 
-      // creating logic
-      console.log("staring creating file");
-      const projectGenre = req.body.genre;
-      const newProject = createNewProjectFactory(req, projectGenre);
-      console.log(newProject);
+  const newProject = createNewProjectFactory(req, projectGenre);
+  console.log({ newProject });
 
-      if (!newProject) {
-        return next(
-          new HttpError("Could not create project with provided genre", 400)
-        );
-      }
+  if (!newProject) {
+    return next(
+      new HttpError("Could not create project with provided genre", 400)
+    );
+  }
 
-      try {
-        await newProject.save();
-      } catch (err) {
-        return next(
-          new HttpError(
-            `Creating project failed, please try again. (${err.message})`,
-            500
-          )
-        );
-      }
+  try {
+    await newProject.save();
+  } catch (err) {
+    return next(
+      new HttpError(
+        `Creating project failed, please try again. (${err.message})`,
+        500
+      )
+    );
+  }
 
-      res.status(201).json({ project: newProject });
-    })
-    .catch((errorMessage) => {
-      return next(new HttpError(errorMessage, 400));
-    });
+  res.status(201).json({ project: newProject });
 };
 
 const updateProjectById = async (req, res, next) => {
@@ -351,6 +345,8 @@ function createNewProjectFactory(req, projectGenre) {
     clientEn,
     countryPl,
     countryEn,
+    icoImgFull,
+    icoImgThumb,
     projectType,
   } = req.body;
 
@@ -365,18 +361,8 @@ function createNewProjectFactory(req, projectGenre) {
     clientEn,
     countryPl,
     countryEn,
-    icoImgFull: fillFieldWithPathOfUploadedFile(
-      req.files,
-      "icoImgFull",
-      req.body.icoImgFull,
-      IMAGE_THUMB_ENUM.IMAGE_FULL
-    ),
-    icoImgThumb: fillFieldWithPathOfUploadedFile(
-      req.files,
-      "icoImgFull",
-      req.body.icoImgFull,
-      IMAGE_THUMB_ENUM.IMAGE_THUMBNAIL
-    ),
+    icoImgFull,
+    icoImgThumb,
     projectType,
   };
 
@@ -384,25 +370,20 @@ function createNewProjectFactory(req, projectGenre) {
     case "GRAPHIC":
       return new ProjectGraphic({
         ...newProjectCommons,
-        images: fillGraphicArrayWithObjects(req.body, req.files),
+        images: fillGraphicArrayWithObjects(req.body),
       });
 
     case "ANIMATION":
       return new ProjectAnimation({
         ...newProjectCommons,
         videoSource: req.body.videoSource,
-        videoSourceThumb: fillFieldWithPathOfUploadedFile(
-          req.files,
-          "videoSourceThumb",
-          req.body.videoSourceThumb,
-          IMAGE_THUMB_ENUM.IMAGE_FULL
-        ),
+        videoSourceThumb: req.body.videoSourceThumb,
       });
 
     case "APP":
       return new ProjectApp({
         ...newProjectCommons,
-        appInfo: fillAppObject(req.body.appInfo, req.files),
+        appInfo: fillAppObject(req.body.appInfo),
       });
 
     case "PANORAMA":
@@ -416,7 +397,7 @@ function createNewProjectFactory(req, projectGenre) {
   }
 }
 
-function fillAppObject(bodyAppInfo, files) {
+function fillAppObject(bodyAppInfo) {
   return {
     appNamePl: bodyAppInfo.appNamePl,
     appNameEn: bodyAppInfo.appNameEn,
@@ -424,18 +405,8 @@ function fillAppObject(bodyAppInfo, files) {
     appDescriptionEn: bodyAppInfo.appDescriptionEn,
     appAndroidLink: bodyAppInfo.appAndroidLink,
     appIOSLink: bodyAppInfo.appIOSLink,
-    appImageFull: fillFieldWithPathOfUploadedFile(
-      files,
-      "appInfo[appImageFull]",
-      null,
-      IMAGE_THUMB_ENUM.IMAGE_FULL
-    ),
-    appImageThumb: fillFieldWithPathOfUploadedFile(
-      files,
-      "appInfo[appImageFull]",
-      null,
-      IMAGE_THUMB_ENUM.IMAGE_THUMBNAIL
-    ),
+    appImageFull: bodyAppInfo.appImageFull,
+    appImageThumb: bodyAppInfo.appImageThumb,
   };
 }
 
@@ -464,24 +435,14 @@ function updateAppObjectWithData(body, filesArray, existingProject) {
   };
 }
 
-function fillGraphicArrayWithObjects(body, filesArray) {
-  return body.images.map((image, index) => {
+function fillGraphicArrayWithObjects(body) {
+  return body.images.map((image) => {
     return {
       imageAltPl: image.imageAltPl,
       imageAltEn: image.imageAltEn,
       isBig: image.isBig,
-      imageSourceFull: fillFieldWithPathOfUploadedFile(
-        filesArray,
-        `images[${index}][imageSourceFull]`,
-        null,
-        IMAGE_THUMB_ENUM.IMAGE_FULL
-      ),
-      imageSourceThumb: fillFieldWithPathOfUploadedFile(
-        filesArray,
-        `images[${index}][imageSourceFull]`,
-        null,
-        IMAGE_THUMB_ENUM.IMAGE_THUMBNAIL
-      ),
+      imageSourceFull: image.imageSourceFull,
+      imageSourceThumb: image.imageSourceThumb,
     };
   });
 }
@@ -515,30 +476,10 @@ function fillPanoramaArrayWithObjects(body, filesArray) {
     return {
       panoramaTitlePl: panorama.panoramaTitlePl,
       panoramaTitleEn: panorama.panoramaTitleEn,
-      panoramaIcoFull: fillFieldWithPathOfUploadedFile(
-        filesArray,
-        `panoramas[${index}][panoramaIcoFull]`,
-        null,
-        IMAGE_THUMB_ENUM.IMAGE_FULL
-      ),
-      panoramaIcoThumb: fillFieldWithPathOfUploadedFile(
-        filesArray,
-        `panoramas[${index}][panoramaIcoFull]`,
-        null,
-        IMAGE_THUMB_ENUM.IMAGE_THUMBNAIL
-      ),
-      panoramaImageSourceFull: fillFieldWithPathOfUploadedFile(
-        filesArray,
-        `panoramas[${index}][panoramaImageSourceFull]`,
-        null,
-        IMAGE_THUMB_ENUM.IMAGE_FULL
-      ),
-      panoramaImageSourceFullThumb: fillFieldWithPathOfUploadedFile(
-        filesArray,
-        `panoramas[${index}][panoramaImageSourceFull]`,
-        null,
-        IMAGE_THUMB_ENUM.IMAGE_THUMBNAIL
-      ),
+      panoramaIcoFull: panorama.panoramaIcoFull,
+      panoramaIcoThumb: panorama.panoramaIcoThumb,
+      panoramaImageSourceFull: panorama.panoramaImageSourceFull,
+      panoramaImageSourceFullThumb: panorama.panoramaImageSourceFullThumb,
     };
   });
 }
