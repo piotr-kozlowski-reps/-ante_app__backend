@@ -122,143 +122,123 @@ const createProject = async (req, res, next) => {
 };
 
 const updateProjectById = async (req, res, next) => {
-  //validating errors
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    const errorsMessages = errors.errors.map((error) => {
-      return {
-        errorField: error.param,
-        errorMessage: error.msg,
-      };
-    });
-
-    return res.status(422).json(errorsMessages);
-  }
-
-  //updating logic
-  const projectId = req.params.projectId;
-
-  let existingProject;
-  try {
-    existingProject = await Project.findById(projectId);
-  } catch (err) {
-    return next(
-      new HttpError(
-        `Something went wrong, could not update a project. Most probably provided id was wrong. Details:  (${err.message})`,
-        500
-      )
-    );
-  }
-
-  if (!existingProject || Object.keys(existingProject).length === 0) {
-    return next(new HttpError("Could not find project with provided id.", 400));
-  }
-
-  if (existingProject.genre !== req.body.genre) {
-    return next(
-      new HttpError(
-        "Could not update project, provided project's genre is different than existing one.",
-        400
-      )
-    );
-  }
-
-  //update when no new file provided (only paths in string)
-  if (req.files.length === 0) {
-    // updating logic
-    console.log("staring updating file");
-
-    existingProject = updateProjectHelper(req, existingProject);
-
-    try {
-      await existingProject.save();
-    } catch (err) {
-      return next(
-        new HttpError(
-          `Something went wrong, could not update a project. (${err.message})`,
-          500
-        )
-      );
-    }
-
-    res
-      .status(201)
-      .json({ project: existingProject.toObject({ getters: true }) });
-    return;
-  }
-
-  //update when file/files are provided
-  if (req.files.length > 0) {
-    createThumbnails(req.files, next)
-      .then(async () => {
-        checkIfEveryFileExistsIncludingThumbnails(req.files, next);
-
-        // updating logic
-        console.log("staring updating file");
-
-        existingProject = updateProjectHelper(req, existingProject);
-
-        try {
-          await existingProject.save();
-        } catch (err) {
-          return next(
-            new HttpError(
-              `Something went wrong, could not update a project. (${err.message})`,
-              500
-            )
-          );
-        }
-
-        res
-          .status(201)
-          .json({ project: existingProject.toObject({ getters: true }) });
-      })
-      .catch((errorMessage) => {
-        return next(new HttpError(errorMessage, 400));
-      });
-  }
+  // //validating errors
+  // const errors = validationResult(req);
+  // if (!errors.isEmpty()) {
+  //   const errorsMessages = errors.errors.map((error) => {
+  //     return {
+  //       errorField: error.param,
+  //       errorMessage: error.msg,
+  //     };
+  //   });
+  //   return res.status(422).json(errorsMessages);
+  // }
+  // //updating logic
+  // const projectId = req.params.projectId;
+  // let existingProject;
+  // try {
+  //   existingProject = await Project.findById(projectId);
+  // } catch (err) {
+  //   return next(
+  //     new HttpError(
+  //       `Something went wrong, could not update a project. Most probably provided id was wrong. Details:  (${err.message})`,
+  //       500
+  //     )
+  //   );
+  // }
+  // if (!existingProject || Object.keys(existingProject).length === 0) {
+  //   return next(new HttpError("Could not find project with provided id.", 400));
+  // }
+  // if (existingProject.genre !== req.body.genre) {
+  //   return next(
+  //     new HttpError(
+  //       "Could not update project, provided project's genre is different than existing one.",
+  //       400
+  //     )
+  //   );
+  // }
+  // //update when no new file provided (only paths in string)
+  // if (req.files.length === 0) {
+  //   // updating logic
+  //   console.log("staring updating file");
+  //   existingProject = updateProjectHelper(req, existingProject);
+  //   try {
+  //     await existingProject.save();
+  //   } catch (err) {
+  //     return next(
+  //       new HttpError(
+  //         `Something went wrong, could not update a project. (${err.message})`,
+  //         500
+  //       )
+  //     );
+  //   }
+  //   res
+  //     .status(201)
+  //     .json({ project: existingProject.toObject({ getters: true }) });
+  //   return;
+  // }
+  // //update when file/files are provided
+  // if (req.files.length > 0) {
+  //   createThumbnails(req.files, next)
+  //     .then(async () => {
+  //       checkIfEveryFileExistsIncludingThumbnails(req.files, next);
+  //       // updating logic
+  //       console.log("staring updating file");
+  //       existingProject = updateProjectHelper(req, existingProject);
+  //       try {
+  //         await existingProject.save();
+  //       } catch (err) {
+  //         return next(
+  //           new HttpError(
+  //             `Something went wrong, could not update a project. (${err.message})`,
+  //             500
+  //           )
+  //         );
+  //       }
+  //       res
+  //         .status(201)
+  //         .json({ project: existingProject.toObject({ getters: true }) });
+  //     })
+  //     .catch((errorMessage) => {
+  //       return next(new HttpError(errorMessage, 400));
+  //     });
+  // }
 };
 
 const deleteProjectById = async (req, res, next) => {
-  const projectId = req.params.projectId;
-
-  let existingProject;
-  try {
-    existingProject = await Project.findById(projectId);
-  } catch (err) {
-    return next(
-      new HttpError(
-        `Something went wrong, could not delete a project. Most probably provided id was wrong. Details:  (${err.message})`,
-        500
-      )
-    );
-  }
-
-  if (!existingProject || Object.keys(existingProject).length === 0) {
-    return next(new HttpError("Could not find project with provided id.", 400));
-  }
-
-  const pathsOfAllFilesToBeDeleted =
-    extractPathsOfAllFilesToBeDeleted(existingProject);
-
-  try {
-    await existingProject.remove();
-  } catch (err) {
-    return next(
-      new HttpError(
-        `Something went wrong, could not delete a project. Details: (${err.message})`,
-        500
-      )
-    );
-  }
-
-  pathsOfAllFilesToBeDeleted.forEach((imagePath) => {
-    Fs.unlink(imagePath, (err) => {
-      console.log(err);
-    });
-  });
-
-  res.status(200).json({ message: "Project deleted." });
+  // const projectId = req.params.projectId;
+  // let existingProject;
+  // try {
+  //   existingProject = await Project.findById(projectId);
+  // } catch (err) {
+  //   return next(
+  //     new HttpError(
+  //       `Something went wrong, could not delete a project. Most probably provided id was wrong. Details:  (${err.message})`,
+  //       500
+  //     )
+  //   );
+  // }
+  // if (!existingProject || Object.keys(existingProject).length === 0) {
+  //   return next(new HttpError("Could not find project with provided id.", 400));
+  // }
+  // const pathsOfAllFilesToBeDeleted =
+  //   extractPathsOfAllFilesToBeDeleted(existingProject);
+  // try {
+  //   await existingProject.remove();
+  // } catch (err) {
+  //   return next(
+  //     new HttpError(
+  //       `Something went wrong, could not delete a project. Details: (${err.message})`,
+  //       500
+  //     )
+  //   );
+  // }
+  // pathsOfAllFilesToBeDeleted.forEach((imagePath) => {
+  //   Fs.unlink(imagePath, (err) => {
+  //     console.log(err);
+  //   });
+  // });
+  // res.status(200).json({ message: "Project deleted." });
 };
 
 ////
@@ -332,7 +312,6 @@ function updateProjectHelper(req, existingProject) {
 
 function createNewProjectFactory(req, projectGenre) {
   console.log("body", req.body);
-  console.log("files", req.files);
 
   const {
     genre,
@@ -486,11 +465,6 @@ function fillPanoramaArrayWithObjects(body, filesArray) {
 
 function updatePanoramaArrayWithObjects(body, filesArray, existingProject) {
   return body.panoramas.map((panorama, index) => {
-    // console.log(
-    //   "odnosnik: ",
-    //   eval(`body.panoramas[${index}][panoramaIcoFull]`)
-    // );
-
     return {
       panoramaTitlePl: panorama.panoramaTitlePl,
       panoramaTitleEn: panorama.panoramaTitleEn,
@@ -498,7 +472,6 @@ function updatePanoramaArrayWithObjects(body, filesArray, existingProject) {
         filesArray,
         `panoramas[${index}][panoramaIcoFull]`,
         panorama.panoramaIcoFull,
-        // eval(`body.panoramas[${index}]["panoramaIcoFull"]`),
         IMAGE_THUMB_ENUM.IMAGE_FULL,
         existingProject
       ),
