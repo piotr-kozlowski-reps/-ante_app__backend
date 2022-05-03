@@ -5,6 +5,13 @@ const { validationResult } = require("express-validator");
 const sharp = require("sharp");
 const Fs = require("fs");
 const utils = require("../shared/utils");
+require("dotenv").config();
+const cloudinary = require("cloudinary").v2;
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 const Project = require("../models/project");
 const ProjectGraphic = require("../models/ProjectGraphic");
@@ -206,39 +213,47 @@ const updateProjectById = async (req, res, next) => {
 };
 
 const deleteProjectById = async (req, res, next) => {
-  // const projectId = req.params.projectId;
-  // let existingProject;
-  // try {
-  //   existingProject = await Project.findById(projectId);
-  // } catch (err) {
-  //   return next(
-  //     new HttpError(
-  //       `Something went wrong, could not delete a project. Most probably provided id was wrong. Details:  (${err.message})`,
-  //       500
-  //     )
-  //   );
-  // }
-  // if (!existingProject || Object.keys(existingProject).length === 0) {
-  //   return next(new HttpError("Could not find project with provided id.", 400));
-  // }
-  // const pathsOfAllFilesToBeDeleted =
-  //   extractPathsOfAllFilesToBeDeleted(existingProject);
-  // try {
-  //   await existingProject.remove();
-  // } catch (err) {
-  //   return next(
-  //     new HttpError(
-  //       `Something went wrong, could not delete a project. Details: (${err.message})`,
-  //       500
-  //     )
-  //   );
-  // }
-  // pathsOfAllFilesToBeDeleted.forEach((imagePath) => {
-  //   Fs.unlink(imagePath, (err) => {
-  //     console.log(err);
-  //   });
-  // });
-  // res.status(200).json({ message: "Project deleted." });
+  const projectId = req.params.projectId;
+  let existingProject;
+  try {
+    existingProject = await Project.findById(projectId);
+  } catch (err) {
+    return next(
+      new HttpError(
+        `Something went wrong, could not delete a project. Most probably provided id was wrong. Details:  (${err.message})`,
+        500
+      )
+    );
+  }
+  if (!existingProject || Object.keys(existingProject).length === 0) {
+    return next(new HttpError("Could not find project with provided id.", 400));
+  }
+  const pathsOfAllFilesToBeDeleted =
+    extractPathsOfAllFilesToBeDeleted(existingProject);
+
+  const extractedIDisArrayFromPath = extractIDisFromPath(
+    pathsOfAllFilesToBeDeleted
+  );
+
+  try {
+    await existingProject.remove();
+  } catch (err) {
+    return next(
+      new HttpError(
+        `Something went wrong, could not delete a project. Details: (${err.message})`,
+        500
+      )
+    );
+  }
+
+  cloudinary.api.delete_resources(
+    extractedIDisArrayFromPath,
+    (error, result) => {
+      console.log(result, error);
+    }
+  );
+
+  res.status(200).json({ message: "Project deleted." });
 };
 
 ////
@@ -678,49 +693,55 @@ function checkIfFileExistsAndThrowErrorIfNeeded(filePath, next) {
   }
 }
 
-function extractPathsOfAllFilesToBeDeleted(obj, pathsOfAllFilesToBeDeleted) {
-  Object.keys(obj).forEach((key) => {
-    const isString =
-      Object.prototype.toString.call(obj[key]) === "[object String]";
+// function extractPathsOfAllFilesToBeDeleted(obj, pathsOfAllFilesToBeDeleted) {
+//   Object.keys(obj).forEach((key) => {
+//     const isString =
+//       Object.prototype.toString.call(obj[key]) === "[object String]";
 
-    if (isString && obj[key].startsWith("uploads\\images\\")) {
-      pathsOfAllFilesToBeDeleted.push(obj[key]);
-    }
+//     if (isString && obj[key].startsWith("uploads\\images\\")) {
+//       pathsOfAllFilesToBeDeleted.push(obj[key]);
+//     }
 
-    if (typeof obj[key] === "object" && obj[key] !== null) {
-      extractPathsOfAllFilesToBeDeleted(obj[key]);
-    }
+//     if (typeof obj[key] === "object" && obj[key] !== null) {
+//       extractPathsOfAllFilesToBeDeleted(obj[key]);
+//     }
+//   });
+// }
+
+function extractIDisFromPath(fullPathsArray) {
+  const resultArray = fullPathsArray.map((path) => {
+    let result = "";
+    result = path.match(/ante_portfolio_images\/.+\.([A-Za-z]){3}$/i)[0];
+    // result = result.slice(22, result.length);
+    result = result.split(".")[0];
+    return result;
   });
+
+  return resultArray;
 }
 
 function extractPathsOfAllFilesToBeDeleted(project) {
   const resultArray = [];
   resultArray.push(project.icoImgFull);
-  resultArray.push(project.icoImgThumb);
 
   if (project.genre === genre.PANORAMA) {
     project.panoramas.forEach((panorama) => {
       resultArray.push(panorama.panoramaIcoFull);
-      resultArray.push(panorama.panoramaIcoThumb);
       resultArray.push(panorama.panoramaImageSourceFull);
-      resultArray.push(panorama.panoramaImageSourceFullThumb);
     });
   }
 
   if (project.genre === genre.GRAPHIC) {
     project.images.forEach((image) => {
       resultArray.push(image.imageSourceFull);
-      resultArray.push(image.imageSourceThumb);
     });
   }
 
   if (project.genre === genre.ANIMATION) {
-    resultArray.push(project.videoSourceThumb);
   }
 
   if (project.genre === genre.APP) {
     resultArray.push(project.appInfo.appImageFull);
-    resultArray.push(project.appInfo.appImageThumb);
   }
 
   return resultArray;
