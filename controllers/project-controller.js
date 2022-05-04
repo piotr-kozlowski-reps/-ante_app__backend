@@ -114,6 +114,24 @@ const createProject = async (req, res, next) => {
     );
   }
 
+  //checking if all images are present in cloudinary
+  const allPathsToImagesInCloudinary =
+    extractPathsOfAllExternalFilesInCloudinary(newProject);
+  const extractedIDisArrayFromPaths = extractIDisFromPath(
+    allPathsToImagesInCloudinary
+  );
+
+  try {
+    checkAllImagesIfTheyExist(extractedIDisArrayFromPaths);
+  } catch (err) {
+    return next(
+      new HttpError(
+        `Creating project failed, some of external images are not existing. (${err.message})`,
+        500
+      )
+    );
+  }
+
   try {
     await newProject.save();
   } catch (err) {
@@ -129,41 +147,46 @@ const createProject = async (req, res, next) => {
 };
 
 const updateProjectById = async (req, res, next) => {
-  // //validating errors
-  // const errors = validationResult(req);
-  // if (!errors.isEmpty()) {
-  //   const errorsMessages = errors.errors.map((error) => {
-  //     return {
-  //       errorField: error.param,
-  //       errorMessage: error.msg,
-  //     };
-  //   });
-  //   return res.status(422).json(errorsMessages);
-  // }
-  // //updating logic
-  // const projectId = req.params.projectId;
-  // let existingProject;
-  // try {
-  //   existingProject = await Project.findById(projectId);
-  // } catch (err) {
-  //   return next(
-  //     new HttpError(
-  //       `Something went wrong, could not update a project. Most probably provided id was wrong. Details:  (${err.message})`,
-  //       500
-  //     )
-  //   );
-  // }
-  // if (!existingProject || Object.keys(existingProject).length === 0) {
-  //   return next(new HttpError("Could not find project with provided id.", 400));
-  // }
-  // if (existingProject.genre !== req.body.genre) {
-  //   return next(
-  //     new HttpError(
-  //       "Could not update project, provided project's genre is different than existing one.",
-  //       400
-  //     )
-  //   );
-  // }
+  //validating errors
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    const errorsMessages = errors.errors.map((error) => {
+      return {
+        errorField: error.param,
+        errorMessage: error.msg,
+      };
+    });
+    return res.status(422).json(errorsMessages);
+  }
+
+  //updating logic
+  const projectId = req.params.projectId;
+  let existingProject;
+  try {
+    existingProject = await Project.findById(projectId);
+  } catch (err) {
+    return next(
+      new HttpError(
+        `Something went wrong, could not update a project. Most probably provided id was wrong. Details:  (${err.message})`,
+        500
+      )
+    );
+  }
+
+  if (!existingProject || Object.keys(existingProject).length === 0) {
+    return next(new HttpError("Could not find project with provided id.", 400));
+  }
+  if (existingProject.genre !== req.body.genre) {
+    return next(
+      new HttpError(
+        "Could not update project, provided project's genre is different than existing one.",
+        400
+      )
+    );
+  }
+
+  //creating array of
+
   // //update when no new file provided (only paths in string)
   // if (req.files.length === 0) {
   //   // updating logic
@@ -229,7 +252,7 @@ const deleteProjectById = async (req, res, next) => {
     return next(new HttpError("Could not find project with provided id.", 400));
   }
   const pathsOfAllFilesToBeDeleted =
-    extractPathsOfAllFilesToBeDeleted(existingProject);
+    extractPathsOfAllExternalFilesInCloudinary(existingProject);
 
   const extractedIDisArrayFromPath = extractIDisFromPath(
     pathsOfAllFilesToBeDeleted
@@ -719,8 +742,17 @@ function extractIDisFromPath(fullPathsArray) {
 
   return resultArray;
 }
+function checkAllImagesIfTheyExist(imagesIDisArray) {
+  imagesIDisArray.forEach((imageID) => {
+    cloudinary.uploader.explicit(imageID, () => {
+      (error, result) => {
+        console.log(result, error);
+      };
+    });
+  });
+}
 
-function extractPathsOfAllFilesToBeDeleted(project) {
+function extractPathsOfAllExternalFilesInCloudinary(project) {
   const resultArray = [];
   resultArray.push(project.icoImgFull);
 
@@ -769,3 +801,5 @@ exports.getProjectById = getProjectById;
 exports.createProject = createProject;
 exports.updateProjectById = updateProjectById;
 exports.deleteProjectById = deleteProjectById;
+exports.extractIDisFromPath = extractIDisFromPath;
+exports.checkAllImagesIfTheyExist = checkAllImagesIfTheyExist;
