@@ -12,6 +12,7 @@ cloudinary.config({
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
+const _ = require("lodash");
 
 const Project = require("../models/project");
 const ProjectGraphic = require("../models/ProjectGraphic");
@@ -101,12 +102,8 @@ const createProject = async (req, res, next) => {
   }
 
   // creating logic
-  console.log("staring creating file");
   const projectGenre = req.body.genre;
-  console.log("request_body: ", req.body);
-
   const newProject = createNewProjectFactory(req, projectGenre);
-  console.log({ newProject });
 
   if (!newProject) {
     return next(
@@ -115,18 +112,20 @@ const createProject = async (req, res, next) => {
   }
 
   //checking if all images are present in cloudinary
-  const allPathsToImagesInCloudinary =
-    extractPathsOfAllExternalFilesInCloudinary(newProject);
-  const extractedIDisArrayFromPaths = extractIDisFromPath(
-    allPathsToImagesInCloudinary
-  );
-
+  const allImagesIDisArray = getAllImagesIDis(newProject);
   try {
-    checkAllImagesIfTheyExist(extractedIDisArrayFromPaths);
+    const areImagesExisting = await checkAllImagesIfTheyExist(
+      allImagesIDisArray
+    );
+    if (!areImagesExisting)
+      return new HttpError(
+        `Creating project failed, some of external images don't exist on cloudinary server. (${err.message})`,
+        500
+      );
   } catch (err) {
     return next(
       new HttpError(
-        `Creating project failed, some of external images are not existing. (${err.message})`,
+        `Creating project failed, some of external images don't exist on cloudinary server. (${err.message})`,
         500
       )
     );
@@ -185,54 +184,79 @@ const updateProjectById = async (req, res, next) => {
     );
   }
 
-  //creating array of
+  const projectGenre = req.body.genre;
+  const newProject = createNewProjectFactory(req, projectGenre);
 
-  // //update when no new file provided (only paths in string)
-  // if (req.files.length === 0) {
-  //   // updating logic
-  //   console.log("staring updating file");
-  //   existingProject = updateProjectHelper(req, existingProject);
-  //   try {
-  //     await existingProject.save();
-  //   } catch (err) {
-  //     return next(
-  //       new HttpError(
-  //         `Something went wrong, could not update a project. (${err.message})`,
-  //         500
-  //       )
-  //     );
-  //   }
-  //   res
-  //     .status(201)
-  //     .json({ project: existingProject.toObject({ getters: true }) });
-  //   return;
-  // }
-  // //update when file/files are provided
-  // if (req.files.length > 0) {
-  //   createThumbnails(req.files, next)
-  //     .then(async () => {
-  //       checkIfEveryFileExistsIncludingThumbnails(req.files, next);
-  //       // updating logic
-  //       console.log("staring updating file");
-  //       existingProject = updateProjectHelper(req, existingProject);
-  //       try {
-  //         await existingProject.save();
-  //       } catch (err) {
-  //         return next(
-  //           new HttpError(
-  //             `Something went wrong, could not update a project. (${err.message})`,
-  //             500
-  //           )
-  //         );
-  //       }
-  //       res
-  //         .status(201)
-  //         .json({ project: existingProject.toObject({ getters: true }) });
-  //     })
-  //     .catch((errorMessage) => {
-  //       return next(new HttpError(errorMessage, 400));
-  //     });
-  // }
+  /*
+   *creating array of images:
+   * that has changed and are useless(to be deleted)
+   * that haven't changed and the new ones (to be checked if they exist)
+   */
+  const arrayOfImagesFromExistingProject = getAllImagesIDis(existingProject);
+  const arrayOfImagesFromNewProjectArray = getAllImagesIDis(newProject);
+
+  const arrayOfNewImages = _.difference(
+    arrayOfImagesFromNewProjectArray,
+    arrayOfImagesFromExistingProject
+  );
+
+  const arrayOfImagesToBeDeleted = _.difference(
+    arrayOfImagesFromExistingProject,
+    arrayOfImagesFromNewProjectArray
+  );
+  getRidOfDuplicates(arrayOfImagesToBeDeleted);
+
+  console.log({ arrayOfImagesFromExistingProject });
+  console.log({ arrayOfImagesFromNewProjectArray });
+  console.log({ existingProject });
+  console.log({ newProject });
+  console.log({ arrayOfNewImages });
+  console.log({ arrayOfImagesToBeDeleted });
+
+  //check if all images exist
+  try {
+    const isImagesExist = await checkAllImagesIfTheyExist(arrayOfNewImages);
+    if (!isImagesExist)
+      return new HttpError(
+        `Creating project failed, some of external images don't exist on cloudinary server. (${err.message})`,
+        500
+      );
+  } catch (err) {
+    return next(
+      new HttpError(
+        `Creating project failed, some of external images don't exist on cloudinary server. (${err.message})`,
+        500
+      )
+    );
+  }
+
+  // updating Project
+  existingProject = updateProjectHelper(req, existingProject);
+
+  // write project and return json
+  try {
+    await existingProject.save();
+  } catch (err) {
+    return next(
+      new HttpError(
+        `Something went wrong, could not update a project. (${err.message})`,
+        500
+      )
+    );
+  }
+
+  //delete unused images from cloudinary
+  await cloudinary.api.delete_resources(
+    arrayOfImagesToBeDeleted,
+    (error, result) => {
+      console.log(result, error);
+    }
+  );
+
+  //response
+  res
+    .status(201)
+    .json({ project: existingProject.toObject({ getters: true }) });
 };
 
 const deleteProjectById = async (req, res, next) => {
@@ -269,7 +293,7 @@ const deleteProjectById = async (req, res, next) => {
     );
   }
 
-  cloudinary.api.delete_resources(
+  await cloudinary.api.delete_resources(
     extractedIDisArrayFromPath,
     (error, result) => {
       console.log(result, error);
@@ -283,7 +307,6 @@ const deleteProjectById = async (req, res, next) => {
 ////utils
 function updateProjectHelper(req, existingProject) {
   console.log("body", req.body);
-  console.log("files", req.files);
 
   existingProject.projNamePl = req.body.projNamePl;
   existingProject.projNameEn = req.body.projNameEn;
@@ -292,64 +315,34 @@ function updateProjectHelper(req, existingProject) {
   existingProject.cityEn = req.body.cityEn;
   existingProject.countryPl = req.body.countryPl;
   existingProject.countryEn = req.body.countryEn;
-  (existingProject.icoImgFull = fillFieldWithPathOfUploadedFile(
-    req.files,
-    "icoImgFull",
-    req.body.icoImgFull,
-    IMAGE_THUMB_ENUM.IMAGE_FULL,
-    existingProject
-  )),
-    (existingProject.icoImgThumb = fillFieldWithPathOfUploadedFile(
-      req.files,
-      "icoImgFull",
-      req.body.icoImgFull,
-      IMAGE_THUMB_ENUM.IMAGE_THUMBNAIL,
-      null
-    ));
-  existingProject.projectType = req.body.projectType;
+  existingProject.icoImgFull = req.body.icoImgFull;
+  existingProject.icoImgThumb = req.body.icoImgFull;
+  existingProject.projectType = req.body.icoImgThumb;
 
   switch (req.body.genre) {
     case "ANIMATION":
       existingProject.videoSource = req.body.videoSource;
-      existingProject.videoSourceThumb = fillFieldWithPathOfUploadedFile(
-        req.files,
-        "videoSourceThumb",
-        req.body.videoSourceThumb,
-        IMAGE_THUMB_ENUM.IMAGE_FULL,
-        existingProject
-      );
+      existingProject.videoSourceThumb = req.body.videoSourceThumb;
       break;
 
     case "GRAPHIC":
-      existingProject.images = updateGraphicArrayWithObjects(
-        req.body,
-        req.files,
-        existingProject
-      );
+      existingProject.images = updateGraphicArrayWithObjects(req.body);
       break;
 
     case "APP":
-      existingProject.appInfo = updateAppObjectWithData(
-        req.body,
-        req.files,
-        existingProject
-      );
+      existingProject.appInfo = updateAppObjectWithData(req.body);
 
       break;
 
     case "PANORAMA":
-      existingProject.panoramas = updatePanoramaArrayWithObjects(
-        req.body,
-        req.files,
-        existingProject
-      );
+      existingProject.panoramas = updatePanoramaArrayWithObjects(req.body);
       break;
   }
   return existingProject;
 }
 
 function createNewProjectFactory(req, projectGenre) {
-  console.log("body", req.body);
+  // console.log("body", req.body);
 
   const {
     genre,
@@ -427,7 +420,7 @@ function fillAppObject(bodyAppInfo) {
   };
 }
 
-function updateAppObjectWithData(body, filesArray, existingProject) {
+function updateAppObjectWithData(body) {
   return {
     appNamePl: body.appInfo["appNamePl"],
     appNameEn: body.appInfo["appNameEn"],
@@ -435,20 +428,8 @@ function updateAppObjectWithData(body, filesArray, existingProject) {
     appDescriptionEn: body.appInfo["appDescriptionEn"],
     appAndroidLink: body.appInfo["appAndroidLink"],
     appIOSLink: body.appInfo["appIOSLink"],
-    appImageFull: fillFieldWithPathOfUploadedFile(
-      filesArray,
-      "appInfo[appImageFull]",
-      body.appInfo["appImageFull"],
-      IMAGE_THUMB_ENUM.IMAGE_FULL,
-      existingProject
-    ),
-    appImageThumb: fillFieldWithPathOfUploadedFile(
-      filesArray,
-      "appInfo[appImageFull]",
-      body.appInfo["appImageFull"],
-      IMAGE_THUMB_ENUM.IMAGE_THUMBNAIL,
-      existingProject
-    ),
+    appImageFull: body.appInfo["appImageFull"],
+    appImageThumb: body.appInfo["appImageThumb"],
   };
 }
 
@@ -464,26 +445,14 @@ function fillGraphicArrayWithObjects(body) {
   });
 }
 
-function updateGraphicArrayWithObjects(body, filesArray, existingProject) {
+function updateGraphicArrayWithObjects(body) {
   return body.images.map((image, index) => {
     return {
       imageAltPl: image.imageAltPl,
       imageAltEn: image.imageAltEn,
       isBig: image.isBig,
-      imageSourceFull: fillFieldWithPathOfUploadedFile(
-        filesArray,
-        `images[${index}][imageSourceFull]`,
-        image.imageSourceFull,
-        IMAGE_THUMB_ENUM.IMAGE_FULL,
-        existingProject
-      ),
-      imageSourceThumb: fillFieldWithPathOfUploadedFile(
-        filesArray,
-        `images[${index}][imageSourceFull]`,
-        image.imageSourceFull,
-        IMAGE_THUMB_ENUM.IMAGE_THUMBNAIL,
-        null
-      ),
+      imageSourceFull: image.imageSourceFull,
+      imageSourceThumb: image.imageSourceThumb,
     };
   });
 }
@@ -501,63 +470,17 @@ function fillPanoramaArrayWithObjects(body, filesArray) {
   });
 }
 
-function updatePanoramaArrayWithObjects(body, filesArray, existingProject) {
+function updatePanoramaArrayWithObjects(body) {
   return body.panoramas.map((panorama, index) => {
     return {
       panoramaTitlePl: panorama.panoramaTitlePl,
       panoramaTitleEn: panorama.panoramaTitleEn,
-      panoramaIcoFull: fillFieldWithPathOfUploadedFile(
-        filesArray,
-        `panoramas[${index}][panoramaIcoFull]`,
-        panorama.panoramaIcoFull,
-        IMAGE_THUMB_ENUM.IMAGE_FULL,
-        existingProject
-      ),
-      panoramaIcoThumb: fillFieldWithPathOfUploadedFile(
-        filesArray,
-        `panoramas[${index}][panoramaIcoFull]`,
-        panorama.panoramaIcoFull,
-        IMAGE_THUMB_ENUM.IMAGE_THUMBNAIL,
-        null
-      ),
-      panoramaImageSourceFull: fillFieldWithPathOfUploadedFile(
-        filesArray,
-        `panoramas[${index}][panoramaImageSourceFull]`,
-        panorama.panoramaImageSourceFull,
-        IMAGE_THUMB_ENUM.IMAGE_FULL,
-        existingProject
-      ),
-      panoramaImageSourceFullThumb: fillFieldWithPathOfUploadedFile(
-        filesArray,
-        `panoramas[${index}][panoramaImageSourceFull]`,
-        panorama.panoramaImageSourceFull,
-        IMAGE_THUMB_ENUM.IMAGE_THUMBNAIL,
-        null
-      ),
+      panoramaIcoFull: panorama.panoramaIcoFull,
+      panoramaIcoThumb: panorama.panoramaIcoThumb,
+      panoramaImageSourceFull: panorama.panoramaImageSourceFull,
+      panoramaImageSourceFullThumb: panorama.panoramaImageSourceFullThumb,
     };
   });
-
-  // return body.images.map((image, index) => {
-  //   return {
-  //     imageAltPl: image.imageAltPl,
-  //     imageAltEn: image.imageAltEn,
-  //     isBig: image.isBig,
-  //     imageSourceFull: fillFieldWithPathOfUploadedFile(
-  //       filesArray,
-  //       `images[${index}][imageSourceFull]`,
-  //       image.imageSourceFull,
-  //       IMAGE_THUMB_ENUM.IMAGE_FULL,
-  //       existingProject
-  //     ),
-  //     imageSourceThumb: fillFieldWithPathOfUploadedFile(
-  //       filesArray,
-  //       `images[${index}][imageSourceFull]`,
-  //       image.imageSourceFull,
-  //       IMAGE_THUMB_ENUM.IMAGE_THUMBNAIL,
-  //       null
-  //     ),
-  //   };
-  // });
 }
 
 function fillFieldWithPathOfUploadedFile(
@@ -731,24 +654,42 @@ function checkIfFileExistsAndThrowErrorIfNeeded(filePath, next) {
 //   });
 // }
 
+function getAllImagesIDis(project) {
+  const allImagesPathInCloudinary =
+    extractPathsOfAllExternalFilesInCloudinary(project);
+  return extractIDisFromPath(allImagesPathInCloudinary);
+}
+
 function extractIDisFromPath(fullPathsArray) {
   const resultArray = fullPathsArray.map((path) => {
     let result = "";
     result = path.match(/ante_portfolio_images\/.+\.([A-Za-z]){3}$/i)[0];
-    // result = result.slice(22, result.length);
     result = result.split(".")[0];
     return result;
   });
 
   return resultArray;
 }
-function checkAllImagesIfTheyExist(imagesIDisArray) {
-  imagesIDisArray.forEach((imageID) => {
-    cloudinary.uploader.explicit(imageID, () => {
-      (error, result) => {
-        console.log(result, error);
-      };
-    });
+async function checkAllImagesIfTheyExist(imagesIDisArray) {
+  return new Promise(async (resolve, reject) => {
+    let finalResult = true;
+    for (let i = 0; i < imagesIDisArray.length; i++) {
+      try {
+        await cloudinary.uploader.explicit(
+          imagesIDisArray[i],
+          { type: "upload" },
+          (error, result) => {
+            if (error) finalResult = false;
+            // console.log("result w środku for'a", result);
+          }
+        );
+      } catch (error) {
+        console.log(error);
+      }
+    }
+
+    if (finalResult) resolve(true);
+    if (!finalResult) reject(false);
   });
 }
 
@@ -796,6 +737,10 @@ function createGoodPathToExtractValueFromObject(formFieldName) {
   )}"${foundAreaToBeChanged.substring(1, foundAreaToBeChanged.length - 1)}"]`;
 }
 
+function getRidOfDuplicates(arrayOfImagesToBeDeleted) {
+  return [...new Set(arrayOfImagesToBeDeleted)];
+}
+
 exports.getProjects = getProjects;
 exports.getProjectById = getProjectById;
 exports.createProject = createProject;
@@ -803,3 +748,4 @@ exports.updateProjectById = updateProjectById;
 exports.deleteProjectById = deleteProjectById;
 exports.extractIDisFromPath = extractIDisFromPath;
 exports.checkAllImagesIfTheyExist = checkAllImagesIfTheyExist;
+exports.getRidOfDuplicates = getRidOfDuplicates;

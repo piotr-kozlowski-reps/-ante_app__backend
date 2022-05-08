@@ -31,4 +31,35 @@ describe("project-controller", () => {
 
     projectControler.checkAllImagesIfTheyExist(inputArray);
   });
+
+  it("should get rid of duplicates in passed array", () => {
+    const inputArray = [
+      "ante_portfolio_images/2013_08_osiedle_mieszkaniowe_dusseldorf_niemcy_ico01_qnpzrt",
+      "ante_portfolio_images/2013_08_osiedle_mieszkaniowe_dusseldorf_niemcy_ico01_qnpzrt",
+      "ante_portfolio_images/2013_08_osiedle_mieszkaniowe_dusseldorf_niemcy_ico01_qnpzrt",
+      "ante_portfolio_images/2013_08_osiedle_mieszkaniowe_dusseldorf_niemcy_ico01_qnpzrt",
+      "ante_portfolio_images/2013_08_osiedle_mieszkaniowe_dusseldorf_niemcy_ico01_qnpzrt",
+      "ante_portfolio_images/2013_08_osiedle_mieszkaniowe_dusseldorf_niemcy_ico01_ytrzrt",
+      "ante_portfolio_images/2013_08_osiedle_mieszkaniowe_dusseldorf_niemcy_ico01_ytrzrt",
+      "ante_portfolio_images/2013_08_osiedle_mieszkaniowe_dusseldorf_niemcy_ico01_ytrzrt",
+      "ante_portfolio_images/2013_08_osiedle_mieszkaniowe_dusseldorf_niemcy_ico01_ytrzrt",
+    ];
+
+    const result = projectControler.getRidOfDuplicates(inputArray);
+    expect(result).toEqual([
+      "ante_portfolio_images/2013_08_osiedle_mieszkaniowe_dusseldorf_niemcy_ico01_qnpzrt",
+      "ante_portfolio_images/2013_08_osiedle_mieszkaniowe_dusseldorf_niemcy_ico01_ytrzrt",
+    ]);
+  });
+
+  it("should not hang if passed array is empty", () => {
+    const inputArray = [];
+    const result = projectControler.getRidOfDuplicates(inputArray);
+    expect(result).toEqual([]);
+  });
+  it("should not hang if passed array is null", () => {
+    const inputArray = null;
+    const result = projectControler.getRidOfDuplicates(inputArray);
+    expect(result).toEqual([]);
+  });
 });

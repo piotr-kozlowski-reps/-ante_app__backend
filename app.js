@@ -35,25 +35,25 @@ app.use((req, res, next) => {
 });
 
 app.use((error, req, res, next) => {
-  if (req.files) {
-    console.log("deleting file");
-    req.files.forEach((file) => {
-      //delete of main image
-      fs.unlink(file.path, (err) => {
-        console.log(err);
-      });
+  // if (req.files) {
+  //   console.log("deleting file");
+  //   req.files.forEach((file) => {
+  //     //delete of main image
+  //     fs.unlink(file.path, (err) => {
+  //       console.log(err);
+  //     });
 
-      //delete of thumbnail image
-      const thumbnailPath = utils.createPathOfThumbnailBasedOnFilePath(
-        file.path
-      );
-      if (fs.existsSync(thumbnailPath)) {
-        fs.unlink(thumbnailPath, (err) => {
-          console.log(err);
-        });
-      }
-    });
-  }
+  //     //delete of thumbnail image
+  //     const thumbnailPath = utils.createPathOfThumbnailBasedOnFilePath(
+  //       file.path
+  //     );
+  //     if (fs.existsSync(thumbnailPath)) {
+  //       fs.unlink(thumbnailPath, (err) => {
+  //         console.log(err);
+  //       });
+  //     }
+  //   });
+  // }
 
   if (res.headerSent) {
     return next(error);
