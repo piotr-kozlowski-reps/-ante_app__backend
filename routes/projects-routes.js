@@ -89,30 +89,30 @@ const checks = [
     .withMessage("link to iOS application must be provided."),
 
   //graphic
-  check("images")
-    .if((value, { req }) => req.body.genre === "GRAPHIC")
-    .isArray({ min: 1 })
-    .withMessage("at least one image must be provided."),
-  check("images.*.imageSourceFull")
-    .if((value, { req }) => req.body.genre === "GRAPHIC")
-    .notEmpty()
-    .withMessage("image source must be provided."),
-  check("images.*.imageSourceThumb")
-    .if((value, { req }) => req.body.genre === "GRAPHIC")
-    .notEmpty()
-    .withMessage("image source thumbnail must be provided."),
-  check("images.*.imageAltPl")
-    .if((value, { req }) => req.body.genre === "GRAPHIC")
-    .notEmpty()
-    .withMessage("image description (ALT) (in polish) cannot be empty."),
-  check("images.*.imageAltEn")
-    .if((value, { req }) => req.body.genre === "GRAPHIC")
-    .notEmpty()
-    .withMessage("image description (ALT) (in english) cannot be empty."),
-  check("images.*.isBig")
-    .if((value, { req }) => req.body.genre === "GRAPHIC")
-    .isBoolean()
-    .withMessage("isBig has to be a boolean value."),
+  // check("images")
+  //   .if((value, { req }) => req.body.genre === "GRAPHIC")
+  //   .isArray({ min: 1 })
+  //   .withMessage("at least one image must be provided."),
+  // check("images.*.imageSourceFull")
+  //   .if((value, { req }) => req.body.genre === "GRAPHIC")
+  //   .notEmpty()
+  //   .withMessage("image source must be provided."),
+  // check("images.*.imageSourceThumb")
+  //   .if((value, { req }) => req.body.genre === "GRAPHIC")
+  //   .notEmpty()
+  //   .withMessage("image source thumbnail must be provided."),
+  // check("images.*.imageAltPl")
+  //   .if((value, { req }) => req.body.genre === "GRAPHIC")
+  //   .notEmpty()
+  //   .withMessage("image description (ALT) (in polish) cannot be empty."),
+  // check("images.*.imageAltEn")
+  //   .if((value, { req }) => req.body.genre === "GRAPHIC")
+  //   .notEmpty()
+  //   .withMessage("image description (ALT) (in english) cannot be empty."),
+  // check("images.*.isBig")
+  //   .if((value, { req }) => req.body.genre === "GRAPHIC")
+  //   .isBoolean()
+  //   .withMessage("isBig has to be a boolean value."),
 
   //panorama
   check("panoramas")

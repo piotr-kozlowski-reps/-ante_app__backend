@@ -101,6 +101,8 @@ const createProject = async (req, res, next) => {
     return next(new HttpError(JSON.stringify(errorsMessages), 422));
   }
 
+  console.log(req.body);
+
   // creating logic
   const projectGenre = req.body.genre;
   const newProject = createNewProjectFactory(req, projectGenre);
