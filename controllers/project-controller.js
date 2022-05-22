@@ -233,7 +233,7 @@ const updateProjectById = async (req, res, next) => {
   }
 
   // updating Project
-  existingProject = updateProjectHelper(req, existingProject);
+  updateProjectHelper(req, existingProject);
 
   // write project and return json
   try {
@@ -248,12 +248,23 @@ const updateProjectById = async (req, res, next) => {
   }
 
   //delete unused images from cloudinary
-  await cloudinary.api.delete_resources(
-    arrayOfImagesToBeDeleted,
-    (error, result) => {
-      console.log(result, error);
+  if (arrayOfImagesToBeDeleted.length > 0) {
+    try {
+      await cloudinary.api.delete_resources(
+        arrayOfImagesToBeDeleted,
+        (error, result) => {
+          console.log(result, error);
+        }
+      );
+    } catch (error) {
+      return next(
+        new HttpError(
+          `Something went wrong, could not update a project. (${err.message})`,
+          500
+        )
+      );
     }
-  );
+  }
 
   //response
   res
@@ -317,9 +328,11 @@ function updateProjectHelper(req, existingProject) {
   existingProject.cityEn = req.body.cityEn;
   existingProject.countryPl = req.body.countryPl;
   existingProject.countryEn = req.body.countryEn;
+  existingProject.clientPl = req.body.clientPl;
+  existingProject.clientEn = req.body.clientEn;
   existingProject.icoImgFull = req.body.icoImgFull;
-  existingProject.icoImgThumb = req.body.icoImgFull;
-  existingProject.projectType = req.body.icoImgThumb;
+  existingProject.icoImgThumb = req.body.icoImgThumb;
+  existingProject.projectType = req.body.projectType;
 
   switch (req.body.genre) {
     case "ANIMATION":
@@ -340,7 +353,7 @@ function updateProjectHelper(req, existingProject) {
       existingProject.panoramas = updatePanoramaArrayWithObjects(req.body);
       break;
   }
-  return existingProject;
+  // return existingProject;
 }
 
 function createNewProjectFactory(req, projectGenre) {
