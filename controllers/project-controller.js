@@ -726,6 +726,7 @@ function extractPathsOfAllExternalFilesInCloudinary(project) {
   }
 
   if (project.genre === genre.ANIMATION) {
+    resultArray.push(project.videoSourceThumb);
   }
 
   if (project.genre === genre.APP) {
