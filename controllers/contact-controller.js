@@ -8,7 +8,7 @@ const { createTestAccount } = require("nodemailer");
 const contact = async (req, res, next) => {
   console.log("contact");
 
-  console.log(req.body);
+  // console.log(req.body);
 
   const { name, surname, email, phone, textContent, lang } = req.body;
 

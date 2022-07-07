@@ -61,7 +61,7 @@ const login = async (req, res, next) => {
       { login: existingUser.login, id: existingUser.id },
       process.env.JWT_KEY,
       {
-        expiresIn: "1h",
+        expiresIn: "8h",
       }
     );
   } catch (error) {
