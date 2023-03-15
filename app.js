@@ -64,13 +64,23 @@ app.use((error, req, res, next) => {
 });
 
 //db & listener
-mongoose
-  .connect(
-    `mongodb+srv://${process.env.USER}:${process.env.PASS}@cluster0.c9ept.mongodb.net/${process.env.DB_NAME}?retryWrites=true&w=majority`
-  )
-  .then(() => {
-    app.listen(process.env.PORT || 5000);
-  })
-  .catch((err) => {
-    console.log(err);
+mongoose.connect((err) => {
+  if (err) {
+    console.error(err);
+    return false;
+  }
+  app.listen(process.env.PORT || 5000, () => {
+    console.log("listening for requests");
   });
+});
+
+// mongoose
+//   .connect(
+//     `mongodb+srv://${process.env.USER}:${process.env.PASS}@cluster0.c9ept.mongodb.net/${process.env.DB_NAME}?retryWrites=true&w=majority`
+//   )
+//   .then(() => {
+//     app.listen(process.env.PORT || 5000);
+//   })
+//   .catch((err) => {
+//     console.log(err);
+//   });
