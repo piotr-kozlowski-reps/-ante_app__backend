@@ -11,7 +11,7 @@ const login = async (req, res, next) => {
   const { login, password } = req.body;
 
   //encrypted password generation - start
-  // const desiredPassword = "";
+  // const desiredPassword = "ala";
   // let hashedPassword;
   // try {
   //   hashedPassword = await bcrypt.hash(desiredPassword, 12);
@@ -19,7 +19,7 @@ const login = async (req, res, next) => {
   //   return next(new HttpError("Could not create user, please try again", 500));
   // }
   // console.log(hashedPassword);
-  //encrypted password generation - end
+  // encrypted password generation - end
 
   let existingUser;
   try {
