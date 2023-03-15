@@ -14,6 +14,8 @@ const projectRoutes = require("./routes/projects-routes");
 const loginRoutes = require("./routes/login-routes");
 const contactRoutes = require("./routes/contact-routes");
 
+const PORT = process.env.PORT || 5000;
+
 ////express
 const app = express();
 
@@ -64,16 +66,25 @@ app.use((error, req, res, next) => {
 });
 
 //db & listener
-mongoose.connect((err) => {
-  if (err) {
-    console.error(err);
-    return false;
+const connectDB = async () => {
+  try {
+    const conn = await mongoose.connect(
+      `mongodb+srv://${process.env.USER}:${process.env.PASS}@cluster0.c9ept.mongodb.net/${process.env.DB_NAME}?retryWrites=true&w=majority`
+    );
+    console.log(`MongoDB Connected: ${conn.connection.host}`);
+  } catch (error) {
+    console.error(error);
+    process.exit(1);
   }
-  app.listen(process.env.PORT || 5000, () => {
+};
+
+connectDB().then(() => {
+  app.listen(PORT, () => {
     console.log("listening for requests");
   });
 });
 
+////working normally
 // mongoose
 //   .connect(
 //     `mongodb+srv://${process.env.USER}:${process.env.PASS}@cluster0.c9ept.mongodb.net/${process.env.DB_NAME}?retryWrites=true&w=majority`
