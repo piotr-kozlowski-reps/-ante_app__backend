@@ -11,14 +11,14 @@ const login = async (req, res, next) => {
   const { login, password } = req.body;
 
   //encrypted password generation - start
-  const desiredPassword = "12TEst!!";
-  let hashedPassword;
-  try {
-    hashedPassword = await bcrypt.hash(desiredPassword, 12);
-  } catch (error) {
-    return next(new HttpError("Could not create user, please try again", 500));
-  }
-  console.log(hashedPassword);
+  // const desiredPassword = "12TEst!!";
+  // let hashedPassword;
+  // try {
+  //   hashedPassword = await bcrypt.hash(desiredPassword, 12);
+  // } catch (error) {
+  //   return next(new HttpError("Could not create user, please try again", 500));
+  // }
+  // console.log(hashedPassword);
   // encrypted password generation - end
 
   let existingUser;
