@@ -20,4 +20,5 @@ The API returns appropriate error responses for invalid requests or errors durin
 
 ## License
 
-For any inquiries or support, please contact [Contact Email].
+For any inquiries or support, please contact me.
+You can reach me via email at piotr.kozlowski@dev.ante.pl or through my LinkedIn profile: https://www.linkedin.com/in/piotr-kozlowski-profile/.
